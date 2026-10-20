@@ -30,6 +30,18 @@ class DebugReceiver : BroadcastReceiver() {
                     "STOP" -> vm?.let { CuciVm.runtime.stop(it.id); log("stop ${it.name}") }
                     "REPAIR" -> vm?.let { CuciVm.vms.repair(it); log("repair ${it.name}") }
                     "RESET" -> vm?.let { CuciVm.vms.reset(it); log("reset ${it.name}") }
+                    // -es image <catalogue id>
+                    "DOWNLOAD" -> intent.getStringExtra("image")?.let { CuciVm.images.download(it); log("download $it") }
+                    "IMAGES" -> CuciVm.images.images.first().forEach { log("${it.id} | ${it.status} | ${it.engine}") }
+                    // -es image <id> -es name <vm name> -ei w 1280 -ei h 720 -ei dpi 120
+                    "CREATE" -> {
+                        val img = CuciVm.vms.image(intent.getStringExtra("image") ?: "") ?: return@launch log("no such image")
+                        val v = CuciVm.vms.create(
+                            img, intent.getIntExtra("w", 1280), intent.getIntExtra("h", 720), intent.getIntExtra("dpi", 120),
+                            intent.getStringExtra("vmname") ?: CuciVm.vms.defaultName(img),
+                        )
+                        log("created ${v.name} ${v.id}")
+                    }
                     else -> log("unknown action ${intent.action}")
                 }
                 if (vm == null && intent.hasExtra("name")) log("no VM named ${intent.getStringExtra("name")}")
@@ -41,5 +53,5 @@ class DebugReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun log(s: String) = Log.i("CuciVmDebug", s)
+    private fun log(s: String) { Log.i("CuciVmDebug", s) }
 }

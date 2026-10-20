@@ -1,6 +1,10 @@
 package com.cuvm
 
+import android.content.Intent
 import android.os.Bundle
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -31,19 +35,33 @@ import com.cuvm.ui.settings.VmSettingsScreen
 import com.cuvm.ui.theme.CuciVmTheme
 
 class MainActivity : ComponentActivity() {
+    /** VM id to show right away (intent extra "open_vm": shortcuts, tests). */
+    private var openVm by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        openVm = intent?.getStringExtra(EXTRA_OPEN_VM)
         setContent {
             val prefs by CuciVm.prefs.flow.collectAsStateWithLifecycle(AppPrefs())
-            CuciVmTheme(prefs.theme, prefs.style) { AppNav() }
+            CuciVmTheme(prefs.theme, prefs.style) { AppNav(openVm) { openVm = null } }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.getStringExtra(EXTRA_OPEN_VM)?.let { openVm = it }
+    }
+
+    companion object { const val EXTRA_OPEN_VM = "open_vm" }
 }
 
 @Composable
-private fun AppNav() {
+private fun AppNav(openVm: String?, onOpened: () -> Unit) {
     val nav = rememberNavController()
+    LaunchedEffect(openVm) {
+        if (openVm != null) { nav.navigate("display/$openVm") { popUpTo("home") }; onOpened() }
+    }
     val back: () -> Unit = { nav.popBackStack() }
     val vmArg = listOf(navArgument("id") { type = NavType.StringType })
     NavHost(nav, startDestination = "home") {

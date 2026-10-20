@@ -115,6 +115,8 @@ class ProotEngine(private val context: Context) : GuestEngine {
         val args = mutableListOf(
             File(engineDir, "proot").path, "--kill-on-exit", "--link2symlink", "-0",
             "-r", rootfs(vm).path, "-b", "/dev", "-b", "/proc", "-b", "/sys",
+            // Android has no /dev/shm; browsers and Wine need one.
+            "-b", File(vm.dataPath, "shm").apply { mkdirs() }.path + ":/dev/shm",
         )
         if (vm.shareFolder) args += listOf("-b", "/storage/emulated/0/Download:/mnt/shared")
         args += listOf(
@@ -122,6 +124,9 @@ class ProotEngine(private val context: Context) : GuestEngine {
             "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
             "HOME=/root", "USER=root", "TERM=xterm-256color", "LANG=C.UTF-8",
             "TZ=" + TimeZone.getDefault().id,
+            // Firefox's own sandbox (seccomp, namespaces) cannot start under proot; the VM is the sandbox.
+            "MOZ_FAKE_NO_SANDBOX=1", "MOZ_DISABLE_CONTENT_SANDBOX=1", "MOZ_DISABLE_GMP_SANDBOX=1",
+            "MOZ_DISABLE_RDD_SANDBOX=1", "MOZ_DISABLE_SOCKET_PROCESS_SANDBOX=1",
             "/bin/sh", "-c", script,
         )
         return withProot(ProcessBuilder(args), tmp)
