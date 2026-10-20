@@ -15,7 +15,10 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Undo
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.PhoneAndroid
@@ -62,6 +65,7 @@ private data class Action(val icon: ImageVector, val label: Int, val run: () -> 
 fun BoxScope.MiniBall(
     selfId: String, onShutdown: () -> Unit, onToPhone: () -> Unit, onSettings: () -> Unit,
     onSwitch: (String) -> Unit, onKeyboard: () -> Unit, onPaste: () -> Unit,
+    androidKeys: AndroidKeys? = null,
 ) {
     var drag by remember { mutableStateOf(Offset.Zero) }
     var open by remember { mutableStateOf(false) }
@@ -82,7 +86,14 @@ fun BoxScope.MiniBall(
     }
 
     if (open) {
-        val actions = listOf(
+        val actions = if (androidKeys != null) listOf(
+            Action(Icons.Outlined.PowerSettingsNew, R.string.shutdown) { confirmOff = true },
+            Action(Icons.Outlined.PhoneAndroid, R.string.to_phone, onToPhone),
+            Action(Icons.Outlined.Layers, R.string.recents, androidKeys.recents),
+            Action(Icons.AutoMirrored.Outlined.ArrowBack, R.string.back, androidKeys.back),
+            Action(Icons.Outlined.Home, R.string.home, androidKeys.home),
+            Action(Icons.Outlined.Settings, R.string.settings, onSettings),
+        ) else listOf(
             Action(Icons.Outlined.PowerSettingsNew, R.string.shutdown) { confirmOff = true },
             Action(Icons.Outlined.PhoneAndroid, R.string.to_phone, onToPhone),
             Action(Icons.Outlined.Keyboard, R.string.keyboard, onKeyboard),

@@ -15,7 +15,17 @@ object Catalogue {
         localPath = null, status = "remote", createdAt = 0, updatedAt = 0,
     )
 
+    // Android 8.1 container ROM from the Twoyi project (MPL-2.0), official GitHub release.
+    private val android81 = GuestImage(
+        id = "android-8.1-twoyi", os = "android", name = "Android 8.1", versionLabel = "Twoyi 0.5.4",
+        arch = "arm64", engine = "android_container", source = "catalogue",
+        downloadUrl = "https://github.com/twoyi/twoyi/releases/download/0.5.4/twoyi_0.5.4-03211927-release.apk",
+        sha256 = "ca5e25b3d1852c3b9df8f776f5798269de3c3c40fbf4b92c3768f483ee1a71b5", sizeBytes = 209_364_444L,
+        localPath = null, status = "remote", createdAt = 0, updatedAt = 0,
+    )
+
     val images = listOf(
+        android81,
         alpine("alpine-openbox", "Alpine Linux · Openbox"),
         alpine("alpine-xfce", "Alpine Linux · XFCE"),
     )

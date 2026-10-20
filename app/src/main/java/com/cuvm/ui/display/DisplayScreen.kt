@@ -39,6 +39,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -100,12 +102,18 @@ fun DisplayScreen(id: String, onToPhone: () -> Unit, onSettings: () -> Unit, onS
     }
 
     val v = vm ?: return
+    // Android guests have their own activity/process; this screen only shows their preparation.
+    val engineType by produceState<String?>(null, v.imageId) { value = CuciVm.vms.image(v.imageId)?.engine }
+    val isAndroid = engineType == "android_container"
+    LaunchedEffect(state, isAndroid) {
+        if (isAndroid && (state is VmState.Running || state is VmState.Booting)) { CuciVm.runtime.showAndroid(v); onToPhone() }
+    }
     Box(
         Modifier.fillMaxSize().background(Color.Black)
             .then(if (v.cutoutMode == "exclude") Modifier.windowInsetsPadding(WindowInsets.safeDrawing) else Modifier),
     ) {
         val s = state
-        if (s is VmState.Running) {
+        if (s is VmState.Running && engineType == "proot") {
             GuestView(port = s.port, fps = v.refreshRate, shareClipboard = v.shareClipboard, navBar = v.navBar, miniBall = v.miniBall,
                 onShutdown = { CuciVm.runtime.stop(id) }, onToPhone = onToPhone, onSettings = onSettings, onSwitch = onSwitch, selfId = id)
         } else {

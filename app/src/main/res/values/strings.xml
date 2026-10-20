@@ -205,6 +205,12 @@
     <string name="no_backups">No backups</string>
     <string name="backup_coming">Saving and restoring VMs to a file is coming in the next version.</string>
 
+    <string name="recents">Recents</string>
+    <string name="home">Home</string>
+    <string name="android_booting">Starting %1$s…</string>
+    <string name="another_android">Shut down the other Android VM first: only one runs at a time.</string>
+    <string name="state_patch">Adapting the system to CuciVM…</string>
+
     <string name="notif_channel">Running VMs</string>
     <string name="notif_stop_all">Shut down all</string>
     <plurals name="notif_running">

@@ -203,6 +203,12 @@
     <string name="no_backups">Nessun backup</string>
     <string name="backup_coming">Salvare e ripristinare le VM su file arriva nella prossima versione.</string>
 
+    <string name="recents">Recenti</string>
+    <string name="home">Home</string>
+    <string name="android_booting">Avvio di %1$s…</string>
+    <string name="another_android">Spegni prima l\'altra VM Android: ne gira una alla volta.</string>
+    <string name="state_patch">Adattamento del sistema a CuciVM…</string>
+
     <string name="notif_channel">VM accese</string>
     <string name="notif_stop_all">Spegni tutte</string>
     <plurals name="notif_running">

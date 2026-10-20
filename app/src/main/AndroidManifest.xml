@@ -32,6 +32,17 @@
             </intent-filter>
         </activity>
 
+        <!-- Android guest: own process (Twoyi renderer starts guest init once per process), own task -->
+        <activity
+            android:name=".ui.display.AndroidVmActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|keyboard|smallestScreenSize|density|uiMode"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:process=":android"
+            android:screenOrientation="portrait"
+            android:taskAffinity="com.cuvm.android"
+            tools:ignore="DiscouragedApi" />
+
         <service android:name=".engine.VmService" android:exported="false" />
     </application>
 </manifest>

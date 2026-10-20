@@ -230,6 +230,8 @@ fun stateText(state: VmState): String = when (state) {
     VmState.Stopped -> stringResource(R.string.tagline)
     is VmState.Preparing -> when {
         state.step == "extract" -> stringResource(R.string.state_extract)
+        state.step.startsWith("extract:") -> stringResource(R.string.state_extract) + " " + state.step.removePrefix("extract:") + "%"
+        state.step == "patch" -> stringResource(R.string.state_patch)
         state.step.startsWith("setup") -> stringResource(R.string.state_setup) + state.step.removePrefix("setup").removePrefix(":").let { if (it.isBlank()) "" else "\n" + it.trim() }
         else -> stringResource(R.string.state_booting)
     }

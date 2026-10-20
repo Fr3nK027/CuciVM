@@ -5,6 +5,7 @@ import com.cuvm.data.AppDb
 import com.cuvm.data.ImageRepo
 import com.cuvm.data.Prefs
 import com.cuvm.data.VmRepo
+import com.cuvm.engine.AndroidEngine
 import com.cuvm.engine.ProotEngine
 import com.cuvm.engine.VmRuntime
 import kotlinx.coroutines.CoroutineScope
@@ -27,7 +28,7 @@ object CuciVm {
         vms = VmRepo(app, db.dao())
         prefs = Prefs(app)
         engine = ProotEngine(app)
-        runtime = VmRuntime(app, vms, engine)
+        runtime = VmRuntime(app, vms, engine, AndroidEngine(app))
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             engine.install()
             images.syncCatalogue()
@@ -38,6 +39,7 @@ object CuciVm {
 class CuciVmApp : Application() {
     override fun onCreate() {
         super.onCreate()
-        CuciVm.init(this)
+        // The ":android" guest process needs none of the app singletons.
+        if (!getProcessName().endsWith(":android")) CuciVm.init(this)
     }
 }

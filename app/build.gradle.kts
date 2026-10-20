@@ -60,6 +60,9 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // 7z of the Android container ROM
+    implementation("org.apache.commons:commons-compress:1.27.1")
+    implementation("org.tukaani:xz:1.10")
 
     testImplementation("junit:junit:4.13.2")
 }
