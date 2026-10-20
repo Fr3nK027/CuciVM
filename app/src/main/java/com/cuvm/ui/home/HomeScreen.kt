@@ -70,6 +70,8 @@ import com.cuvm.data.Vm
 import com.cuvm.engine.VmState
 import com.cuvm.engine.active
 import androidx.compose.runtime.produceState
+import android.content.res.Configuration
+import androidx.compose.ui.platform.LocalConfiguration
 import com.cuvm.data.GuestImage
 import com.cuvm.ui.common.ConfirmDialog
 import com.cuvm.ui.common.OsLogo
@@ -91,6 +93,8 @@ fun HomeScreen(
     var menu by remember { mutableStateOf(false) }
     val pager = rememberPagerState { vms.size }
     val current = vms.getOrNull(pager.currentPage)
+    // Phone held sideways (after a laptop-style VM): wide card instead of a phone-shaped one.
+    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     Scaffold(
         topBar = {
@@ -149,7 +153,7 @@ fun HomeScreen(
                     HorizontalPager(pager, Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 48.dp), pageSpacing = 16.dp) { page ->
                         val vm = vms[page]
                         Box(Modifier.fillMaxSize().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
-                            VmCard(vm, states[vm.id] ?: VmState.Stopped, compact = false, onOpen, onSettings, Modifier.fillMaxWidth().aspectRatio(9f / 16f, matchHeightConstraintsFirst = true))
+                            VmCard(vm, states[vm.id] ?: VmState.Stopped, compact = false, onOpen, onSettings, Modifier.fillMaxWidth().aspectRatio(if (landscape) 1.6f else 9f / 16f, matchHeightConstraintsFirst = true))
                         }
                     }
                     Text("${pager.currentPage + 1}/${vms.size}", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 12.dp))

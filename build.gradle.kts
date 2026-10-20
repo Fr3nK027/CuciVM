@@ -8,5 +8,5 @@ plugins {
 
 // Read by the vendored blackbox/Bcore build.gradle (rootProject.ext.*).
 extra["compileSdkVersion"] = 35
-extra["targetSdkVersion"] = 28
+extra["targetSdkVersion"] = 25
 extra["minSdk"] = 29

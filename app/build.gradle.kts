@@ -12,9 +12,10 @@ android {
     defaultConfig {
         applicationId = "com.cuvm"
         minSdk = 29
-        // Sideload only. 28 keeps exec of guest binaries from app storage allowed (see replica/architecture.md).
+        // Sideload only. <= 28 keeps exec of guest binaries from app storage allowed; 25 also keeps SELinux execmod,
+        // which Wine needs to make relocated DLL pages executable (untrusted_app_25 domain). Android 15+ installs >= 24.
         @Suppress("ExpiredTargetSdkVersion")
-        targetSdk = 28
+        targetSdk = 25
         versionCode = 1
         versionName = "0.1.0"
         ndk { abiFilters += "arm64-v8a" }
