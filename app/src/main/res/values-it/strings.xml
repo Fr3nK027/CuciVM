@@ -54,6 +54,7 @@
     <string name="res_device_portrait">Questo telefono, verticale</string>
     <string name="res_device_landscape">Questo telefono, orizzontale</string>
     <string name="res_custom">Personalizzata</string>
+    <string name="res_desktop">Desktop da portatile %1$s</string>
     <string name="res_add_custom">Aggiungi una dimensione</string>
     <string name="res_custom_title">Larghezza × altezza × DPI</string>
 

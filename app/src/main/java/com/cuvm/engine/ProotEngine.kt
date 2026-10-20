@@ -38,17 +38,36 @@ class ProotEngine(private val context: Context) : GuestEngine {
 
     private fun rootfs(vm: Vm) = File(vm.dataPath, "rootfs")
 
+    /** toybox tar flag from the file's magic bytes (downloads are stored without extension). */
+    private fun compression(f: File): String {
+        val m = ByteArray(6).also { b -> f.inputStream().use { it.read(b) } }
+        return when {
+            m[0] == 0x1f.toByte() && m[1] == 0x8b.toByte() -> "z"
+            m[0] == 0xfd.toByte() && m[1] == '7'.code.toByte() && m[2] == 'z'.code.toByte() -> "J"
+            m[0] == 'B'.code.toByte() && m[1] == 'Z'.code.toByte() && m[2] == 'h'.code.toByte() -> "j"
+            else -> ""
+        }
+    }
+
     override suspend fun prepare(vm: Vm, image: GuestImage, log: (String) -> Unit) = withContext(Dispatchers.IO) {
         val root = rootfs(vm)
         if (!File(root, ".vmbox-extracted").exists()) {
             val tar = image.localPath ?: throw IOException("image not downloaded")
             log("extract")
-            root.deleteRecursively(); root.mkdirs()
-            val p = ProcessBuilder("/system/bin/tar", "xzf", tar, "-C", root.path)
+            val tmp = File(vm.dataPath, "rootfs.tmp")
+            root.deleteRecursively(); tmp.deleteRecursively(); tmp.mkdirs()
+            val p = ProcessBuilder("/system/bin/tar", "x${compression(File(tar))}f", tar, "-C", tmp.path)
                 .redirectErrorStream(true).redirectOutput(File(vm.dataPath, "extract.log")).start()
-            if (p.waitFor() != 0 && !File(root, "bin/sh").exists()) throw IOException("extract failed")
-            File(root, "etc/resolv.conf").writeText("nameserver 1.1.1.1\nnameserver 8.8.8.8\n")
-            File(root, "etc/hosts").writeText("127.0.0.1 localhost\n::1 localhost\n")
+            p.waitFor() // device nodes (dev/console...) fail as non-root; checked below instead
+            // Some tarballs (proot-distro) wrap the system in one top-level folder.
+            val only = tmp.listFiles()?.singleOrNull()
+            val top = if (only != null && only.isDirectory && !File(tmp, "usr").exists()) only else tmp
+            if (!top.renameTo(root)) throw IOException("extract failed")
+            tmp.deleteRecursively()
+            if (!File(root, "bin/sh").exists()) throw IOException("extract failed (see extract.log)")
+            // Often symlinks into /run: replace with plain files.
+            File(root, "etc/resolv.conf").apply { delete(); writeText("nameserver 1.1.1.1\nnameserver 8.8.8.8\n") }
+            File(root, "etc/hosts").apply { delete(); writeText("127.0.0.1 localhost\n::1 localhost\n") }
             File(root, ".vmbox-extracted").createNewFile()
         }
         val setup = Catalogue.profile(image).setup

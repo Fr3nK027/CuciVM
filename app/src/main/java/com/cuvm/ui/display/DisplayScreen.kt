@@ -1,6 +1,11 @@
 package com.cuvm.ui.display
 
 import android.app.Activity
+import android.content.pm.ActivityInfo
+import android.content.res.Configuration
+import androidx.compose.ui.input.key.isAltPressed
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.platform.LocalConfiguration
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.graphics.Bitmap
@@ -105,6 +110,13 @@ fun DisplayScreen(id: String, onToPhone: () -> Unit, onSettings: () -> Unit, onS
     val v = vm ?: return
     val engineType by produceState<String?>(null, v.imageId) { value = CuciVm.vms.image(v.imageId)?.engine }
     if (engineType == AppSpace.ENGINE) return AppSpaceScreen(v, onToPhone, onSettings)
+    // A landscape guest (desktop/laptop resolutions) turns the phone sideways while shown.
+    DisposableEffect(v.width > v.height) {
+        val a = ctx as Activity
+        val old = a.requestedOrientation
+        a.requestedOrientation = if (v.width > v.height) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        onDispose { a.requestedOrientation = old }
+    }
     Box(
         Modifier.fillMaxSize().background(Color.Black)
             .then(if (v.cutoutMode == "exclude") Modifier.windowInsetsPadding(WindowInsets.safeDrawing) else Modifier),
@@ -166,6 +178,9 @@ private fun GuestView(
 
     val focus = remember { FocusRequester() }
     val kb = LocalSoftwareKeyboardController.current
+    // With a physical keyboard attached, typing goes to the guest right away.
+    val hwKeyboard = LocalConfiguration.current.keyboard == Configuration.KEYBOARD_QWERTY
+    LaunchedEffect(hwKeyboard) { if (hwKeyboard) runCatching { focus.requestFocus() } }
     var typed by remember { mutableStateOf(TextFieldValue(SENTINEL, TextRange(SENTINEL.length))) }
     var ctrl by remember { mutableStateOf(false) }
     var alt by remember { mutableStateOf(false) }
@@ -183,21 +198,7 @@ private fun GuestView(
     Column(Modifier.fillMaxSize()) {
         Box(
             Modifier.weight(1f).fillMaxWidth().onSizeChanged { box = it }
-                .pointerInput(scale, off) {
-                    detectTapGestures(
-                        onTap = { p -> val (x, y) = fb(p); client?.pointer(x, y, 0); client?.pointer(x, y, 1); client?.pointer(x, y, 0) },
-                        onLongPress = { p -> val (x, y) = fb(p); client?.pointer(x, y, 4); client?.pointer(x, y, 0) },
-                    )
-                }
-                .pointerInput(scale, off) {
-                    var last = Offset.Zero
-                    detectDragGestures(
-                        onDragStart = { p -> last = p; val (x, y) = fb(p); client?.pointer(x, y, 1) },
-                        onDrag = { change, _ -> last = change.position; val (x, y) = fb(last); client?.pointer(x, y, 1) },
-                        onDragEnd = { val (x, y) = fb(last); client?.pointer(x, y, 0) },
-                        onDragCancel = { val (x, y) = fb(last); client?.pointer(x, y, 0) },
-                    )
-                },
+                .pointerInput(scale, off) { guestPointer(::fb) { x, y, b -> client?.pointer(x, y, b) } },
         ) {
             if (bmp != null) {
                 Canvas(Modifier.fillMaxSize()) {
@@ -235,6 +236,16 @@ private fun GuestView(
                 keyboardOptions = KeyboardOptions(autoCorrectEnabled = false, capitalization = KeyboardCapitalization.None, keyboardType = KeyboardType.Ascii),
                 modifier = Modifier.size(1.dp).focusRequester(focus).onPreviewKeyEvent { e ->
                     if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                    // Physical keyboard shortcuts (Ctrl+C, Alt+Tab...): the IME never sees them, send them as-is.
+                    if (e.isCtrlPressed || e.isAltPressed) {
+                        val base = e.nativeKeyEvent.getUnicodeChar(0)
+                        val sym = when {
+                            base > 0 -> Keysyms.forChar(base)
+                            e.key == Key.Tab -> Keysyms.TAB
+                            else -> 0
+                        }
+                        if (sym != 0) { ctrl = e.isCtrlPressed; alt = e.isAltPressed; sendKey(sym); return@onPreviewKeyEvent true }
+                    }
                     val sym = when (e.key) {
                         Key.Enter -> Keysyms.RETURN; Key.Escape -> Keysyms.ESCAPE; Key.Tab -> Keysyms.TAB
                         Key.DirectionLeft -> Keysyms.LEFT; Key.DirectionRight -> Keysyms.RIGHT

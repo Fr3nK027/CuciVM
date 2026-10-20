@@ -67,6 +67,10 @@ fun resolutionPresets(): List<Pair<Resolution, String?>> {
         Resolution(720, 1280, 320) to null, Resolution(1080, 1920, 480) to null,
         portrait to stringResource(R.string.res_device_portrait),
         Resolution(portrait.h, portrait.w, portrait.dpi) to stringResource(R.string.res_device_landscape),
+        // Laptop-style desktops: landscape, desktop density.
+        Resolution(1280, 720, 120) to stringResource(R.string.res_desktop, "720p"),
+        Resolution(1600, 900, 140) to stringResource(R.string.res_desktop, "900p"),
+        Resolution(1920, 1080, 160) to stringResource(R.string.res_desktop, "1080p"),
     )
 }
 
