@@ -80,7 +80,10 @@ class VmRuntime(
                     error("display did not start (see boot.log)")
                 }
                 set(id, VmState.Running(port))
-                val code = proc.waitFor()
+                // Guest sound, following the VM's mute switch while it runs.
+                val audio = AudioBridge(AUDIO_BASE + display)
+                val follow = scope.launch { repo.vm(id).collect { audio.muted = it?.muted == true } }
+                val code = try { proc.waitFor() } finally { follow.cancel(); audio.close() }
                 // Exit while still "running" means the guest or the system ended it.
                 if (current(id) is VmState.Running) {
                     set(id, if (code == 0) VmState.Stopped else VmState.Error("exit $code"))

@@ -170,6 +170,11 @@ class ProotEngine(private val context: Context) : GuestEngine {
             "$(command -v Xvnc || command -v Xtigervnc)" :$display -geometry ${vm.width}x${vm.height} -dpi ${vm.dpi} -depth 24 -SecurityTypes None -localhost -rfbport $port -AlwaysShared -noreset -CompareFB=0 -FrameRate=${vm.refreshRate} &
             i=0; while [ ! -e /tmp/.X11-unix/X$display ] && [ ${'$'}i -lt 40 ]; do sleep 0.25; i=${'$'}((i+1)); done
             export DISPLAY=:$display
+            # Sound: PulseAudio into a null sink, its monitor served as raw PCM to CuciVM (see AudioBridge).
+            if command -v pulseaudio >/dev/null; then
+              pulseaudio --daemonize=yes -n --exit-idle-time=-1 --log-target=file:/tmp/pulse.log                 -L "module-null-sink sink_name=cuvm rate=48000"                 -L "module-native-protocol-unix auth-anonymous=1 socket=/tmp/pulse.sock"                 -L "module-simple-protocol-tcp source=cuvm.monitor record=true playback=false listen=127.0.0.1 port=${AUDIO_BASE + display} rate=48000 format=s16le channels=2"
+              export PULSE_SERVER=unix:/tmp/pulse.sock
+            fi
             $session
         """.trimIndent()
         return guest(vm, script)
@@ -216,3 +221,6 @@ internal fun wrappedInFolder(first: String?): Boolean {
     val top = path.substringBefore('/')
     return path.contains('/') && top.isNotEmpty() && top != "." && top !in ROOT_DIRS
 }
+
+/** Guest audio PCM port = AUDIO_BASE + X display number (display port is 5900 + display). */
+const val AUDIO_BASE = 4700
