@@ -8,7 +8,6 @@ import java.io.DataOutputStream
 import java.io.IOException
 import java.net.Socket
 import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import java.util.concurrent.Executors
 
 /**
@@ -31,7 +30,7 @@ class RfbClient(
 
     var width = 0; private set
     var height = 0; private set
-    private var pixels = IntArray(0)
+    private var fb = ByteArray(0) // RGBX rows, the exact memory layout of an opaque ARGB_8888 Bitmap
     private var bitmap: Bitmap? = null
 
     fun connect() {
@@ -66,11 +65,12 @@ class RfbClient(
         input.skipBytes(16) // server pixel format; we set our own
         input.skipBytes(input.readInt()) // desktop name
 
-        // SetPixelFormat: 32bpp, depth 24, little endian, true colour, R<<16 G<<8 B -> ARGB int with alpha OR'd
+        // SetPixelFormat: 32bpp, depth 24, little endian, R at bit 0, G at 8, B at 16 -> bytes R,G,B,X:
+        // what Android keeps in an ARGB_8888 Bitmap, so frames are copied in bulk with no per-pixel work.
         output.writeByte(0); output.write(ByteArray(3))
         output.writeByte(32); output.writeByte(24); output.writeByte(0); output.writeByte(1)
         output.writeShort(255); output.writeShort(255); output.writeShort(255)
-        output.writeByte(16); output.writeByte(8); output.writeByte(0); output.write(ByteArray(3))
+        output.writeByte(0); output.writeByte(8); output.writeByte(16); output.write(ByteArray(3))
         // SetEncodings: CopyRect, Raw, DesktopSize
         val encs = intArrayOf(1, 0, -223)
         output.writeByte(2); output.writeByte(0); output.writeShort(encs.size)
@@ -82,8 +82,9 @@ class RfbClient(
 
     private fun resize(w: Int, h: Int) {
         width = w; height = h
-        pixels = IntArray(w * h)
-        bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        fb = ByteArray(w * h * 4)
+        // X byte is 0: mark opaque so it is never treated as transparency.
+        bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).apply { setHasAlpha(false) }
     }
 
     private fun requestUpdate(incremental: Boolean) {
@@ -94,7 +95,6 @@ class RfbClient(
 
     private fun loop() {
         val frameMs = 1000L / maxFps.coerceIn(1, 120)
-        var rowBuf = ByteArray(0)
         while (!closed) {
             when (val type = input.readUnsignedByte()) {
                 0 -> {
@@ -106,28 +106,22 @@ class RfbClient(
                         when (val enc = input.readInt()) {
                             0 -> {
                                 val len = w * 4
-                                if (rowBuf.size < len) rowBuf = ByteArray(len)
-                                val ints = ByteBuffer.wrap(rowBuf).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer()
-                                for (row in 0 until h) {
-                                    input.readFully(rowBuf, 0, len)
-                                    ints.rewind()
-                                    val off = (y + row) * width + x
-                                    ints.get(pixels, off, w)
-                                    for (i in off until off + w) pixels[i] = pixels[i] or -0x1000000
-                                }
+                                if (x == 0 && w == width) input.readFully(fb, y * len, h * len) // full-width: one read
+                                else for (row in 0 until h) input.readFully(fb, ((y + row) * width + x) * 4, len)
                             }
                             1 -> {
                                 val sx = input.readUnsignedShort(); val sy = input.readUnsignedShort()
-                                val tmp = IntArray(w * h)
-                                for (row in 0 until h) System.arraycopy(pixels, (sy + row) * width + sx, tmp, row * w, w)
-                                for (row in 0 until h) System.arraycopy(tmp, row * w, pixels, (y + row) * width + x, w)
+                                val len = w * 4
+                                val tmp = ByteArray(len * h)
+                                for (row in 0 until h) System.arraycopy(fb, ((sy + row) * width + sx) * 4, tmp, row * len, len)
+                                for (row in 0 until h) System.arraycopy(tmp, row * len, fb, ((y + row) * width + x) * 4, len)
                             }
                             -223 -> resize(w, h)
                             else -> throw IOException("unexpected encoding $enc")
                         }
                     }
                     val bmp = bitmap!!
-                    bmp.setPixels(pixels, 0, width, 0, 0, width, height)
+                    bmp.copyPixelsFromBuffer(ByteBuffer.wrap(fb))
                     onFrame(bmp)
                     val wait = frameMs - (System.currentTimeMillis() - started)
                     if (wait > 0) Thread.sleep(wait)
