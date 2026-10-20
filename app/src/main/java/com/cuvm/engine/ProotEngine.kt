@@ -99,7 +99,7 @@ class ProotEngine(private val context: Context) : GuestEngine {
         val session = Catalogue.profile(image).session
         val script = """
             rm -f /tmp/.X$display-lock /tmp/.X11-unix/X$display
-            "$(command -v Xvnc || command -v Xtigervnc)" :$display -geometry ${vm.width}x${vm.height} -dpi ${vm.dpi} -depth 24 -SecurityTypes None -localhost -rfbport $port -AlwaysShared &
+            "$(command -v Xvnc || command -v Xtigervnc)" :$display -geometry ${vm.width}x${vm.height} -dpi ${vm.dpi} -depth 24 -SecurityTypes None -localhost -rfbport $port -AlwaysShared -noreset &
             i=0; while [ ! -e /tmp/.X11-unix/X$display ] && [ ${'$'}i -lt 40 ]; do sleep 0.25; i=${'$'}((i+1)); done
             export DISPLAY=:$display
             $session
