@@ -1,10 +1,6 @@
 package com.cuvm.engine
 
-import android.app.ActivityManager
 import android.content.Context
-import com.cuvm.R
-import com.cuvm.data.Vm
-import com.cuvm.ui.display.AndroidVmActivity
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import com.cuvm.data.VmRepo
@@ -33,12 +29,11 @@ sealed interface VmState {
 
 val VmState.active get() = this !is VmState.Stopped && this !is VmState.Error
 
-/** Owns every guest process. One state machine per VM: start is ignored unless stopped or failed. */
+/** Owns every guest. One state machine per VM: start is ignored unless stopped or failed. */
 class VmRuntime(
     private val context: Context, private val repo: VmRepo,
-    private val engine: ProotEngine, private val androidEngine: AndroidEngine,
+    private val engine: ProotEngine, private val space: AppSpace,
 ) {
-    @Volatile private var androidVm: String? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _states = MutableStateFlow<Map<String, VmState>>(emptyMap())
     val states = _states.asStateFlow()
@@ -60,12 +55,16 @@ class VmRuntime(
     fun start(id: String) {
         if (current(id).active) return
         set(id, VmState.Preparing("start"))
-        ContextCompat.startForegroundService(context, Intent(context, VmService::class.java))
         scope.launch {
             try {
                 val vm = repo.get(id) ?: return@launch set(id, VmState.Stopped)
                 val image = repo.image(vm.imageId) ?: error("image missing")
-                if (image.engine == "android_container") return@launch runAndroid(vm, image.localPath ?: error("image not downloaded"))
+                if (image.engine == AppSpace.ENGINE) {
+                    // Apps run in the engine's own processes; the "VM" is its virtual user.
+                    space.ensureUser(repo.spaceUser(vm))
+                    return@launch set(id, VmState.Running(0))
+                }
+                ContextCompat.startForegroundService(context, Intent(context, VmService::class.java))
                 engine.prepare(vm, image) { set(id, VmState.Preparing(it)) }
                 set(id, VmState.Booting)
                 val display = allocDisplay(id)
@@ -91,45 +90,17 @@ class VmRuntime(
         }
     }
 
-    /** Android guest: prepare here, run in the ":android" process, follow that process's life. */
-    private suspend fun runAndroid(vm: Vm, apk: String) {
-        val other = androidVm
-        if (other != null && other != vm.id && current(other).active) {
-            return set(vm.id, VmState.Error(context.getString(R.string.another_android)))
-        }
-        androidVm = vm.id
-        androidEngine.prepare(vm, apk) { set(vm.id, VmState.Preparing(it)) }
-        set(vm.id, VmState.Booting)
-        showAndroid(vm)
-        // Wait for the process to appear, then for it to end.
-        repeat(40) { if (androidPid() != null) return@repeat; delay(250) }
-        if (androidPid() == null) return set(vm.id, VmState.Error("guest process did not start"))
-        set(vm.id, VmState.Running(0))
-        while (androidPid() != null) delay(1000)
-        set(vm.id, VmState.Stopped)
-    }
-
-    fun showAndroid(vm: Vm) {
-        context.startActivity(
-            Intent(context, AndroidVmActivity::class.java)
-                .putExtra(AndroidVmActivity.EXTRA_ROOTFS, androidEngine.rootfs(vm).path)
-                .putExtra(AndroidVmActivity.EXTRA_NAME, vm.name)
-                .putExtra(AndroidVmActivity.EXTRA_MINI_BALL, vm.miniBall)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-        )
-    }
-
-    private fun androidPid(): Int? = context.getSystemService(ActivityManager::class.java).runningAppProcesses
-        ?.firstOrNull { it.processName == context.packageName + AndroidVmActivity.PROCESS_SUFFIX }?.pid
-
     fun stop(id: String) {
-        if (id == androidVm) {
-            set(id, VmState.Stopping)
-            androidPid()?.let(android.os.Process::killProcess)
-            scope.launch { androidEngine.killGuestProcesses() }
+        val p = procs[id]
+        if (p == null) {
+            // App space: stop every app of that virtual user.
+            if (current(id) is VmState.Running) scope.launch {
+                set(id, VmState.Stopping)
+                repo.get(id)?.spaceUser?.let(space::stopAll)
+                set(id, VmState.Stopped)
+            }
             return
         }
-        val p = procs[id] ?: return
         set(id, VmState.Stopping)
         scope.launch {
             p.destroy()
@@ -137,10 +108,7 @@ class VmRuntime(
         }
     }
 
-    fun stopAll() {
-        procs.keys.forEach(::stop)
-        androidVm?.let { if (current(it).active) stop(it) }
-    }
+    fun stopAll() = states.value.filterValues { it.active }.keys.forEach(::stop)
 
     private suspend fun waitForPort(port: Int, proc: Process): Boolean {
         repeat(120) {

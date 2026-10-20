@@ -23,6 +23,12 @@ interface VmDao {
     @Query("select * from guest_image where id = :id")
     suspend fun image(id: String): GuestImage?
 
+    @Query("select * from guest_image where source = 'catalogue'")
+    suspend fun catalogueImages(): List<GuestImage>
+
+    @Query("delete from guest_image where id = :id")
+    suspend fun deleteImage(id: String)
+
     @Query("select * from guest_image where sha256 = :sha and status = 'ready' limit 1")
     suspend fun readyImageBySha(sha: String): GuestImage?
 
@@ -49,6 +55,9 @@ interface VmDao {
 
     @Query("select count(*) from vm")
     suspend fun vmCount(): Int
+
+    @Query("select max(spaceUser) from vm")
+    suspend fun maxSpaceUser(): Int?
 
     @Insert
     suspend fun insertVm(vm: Vm)
@@ -100,7 +109,7 @@ interface VmDao {
 
 @Database(
     entities = [GuestImage::class, Vm::class, VmIdentity::class, VmNetwork::class, VmSensor::class, VmLocation::class],
-    version = 2,
+    version = 3,
 )
 abstract class AppDb : RoomDatabase() {
     abstract fun dao(): VmDao
@@ -114,7 +123,13 @@ abstract class AppDb : RoomDatabase() {
             }
         }
 
+        private val V2_V3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("alter table vm add column spaceUser integer")
+            }
+        }
+
         fun build(context: Context) = Room.databaseBuilder(context, AppDb::class.java, "cucivm.db")
-            .addMigrations(V1_V2).build()
+            .addMigrations(V1_V2, V2_V3).build()
     }
 }

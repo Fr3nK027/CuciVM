@@ -1,13 +1,22 @@
 package com.cuvm.data
 
 import android.content.Context
+import com.cuvm.engine.AppSpace
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 
-class VmRepo(private val context: Context, private val dao: VmDao) {
+class VmRepo(private val context: Context, private val dao: VmDao, private val space: AppSpace) {
     val vms = dao.vms()
+
+    /** The engine user behind an app-space VM, assigned on first use (from 10, clear of real users). */
+    suspend fun spaceUser(vm: Vm): Int = vm.spaceUser ?: ((dao.maxSpaceUser() ?: 9) + 1).also {
+        dao.updateVm(vm.copy(spaceUser = it))
+    }
+
+    suspend fun locationNow(vmId: String) = dao.location(vmId).first()
     fun vm(id: String) = dao.vmFlow(id)
     fun identity(id: String) = dao.identity(id)
     fun network(id: String) = dao.network(id)
@@ -46,6 +55,7 @@ class VmRepo(private val context: Context, private val dao: VmDao) {
 
     /** Wipes the guest filesystem; next start extracts and sets up again. */
     suspend fun reset(vm: Vm) = withContext(Dispatchers.IO) {
+        vm.spaceUser?.let(space::reset)
         File(vm.dataPath).deleteRecursively()
         File(vm.dataPath).mkdirs()
     }
@@ -56,6 +66,7 @@ class VmRepo(private val context: Context, private val dao: VmDao) {
     }
 
     suspend fun delete(vm: Vm) = withContext(Dispatchers.IO) {
+        vm.spaceUser?.let(space::deleteUser)
         dao.deleteVm(vm.id)
         File(vm.dataPath).deleteRecursively()
     }

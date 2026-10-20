@@ -61,6 +61,7 @@ data class Vm(
     val bootAnimation: Boolean = false,
     val dataPath: String,
     val lastError: String? = null,
+    val spaceUser: Int? = null,  // app_space: virtual user id in the engine
     val createdAt: Long,
     val updatedAt: Long,
 )

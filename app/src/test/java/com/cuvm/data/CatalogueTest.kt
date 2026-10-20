@@ -14,7 +14,8 @@ class CatalogueTest {
         assertTrue(p.images.isNotEmpty())
         assertEquals(p.images.size, p.images.map { it.id }.toSet().size)
         for (img in p.images) {
-            assertTrue("${img.id}: engine", img.engine in setOf("proot", "qemu", "android_container"))
+            assertTrue("${img.id}: engine", img.engine in setOf("proot", "qemu", "app_space"))
+            if (img.engine == "app_space") { assertEquals("ready", img.status); continue }
             assertTrue("${img.id}: url or parts", img.downloadUrl != null || Catalogue.parts(img).isNotEmpty())
             assertTrue("${img.id}: sha256", img.sha256?.matches(Regex("[0-9a-f]{64}")) == true)
             assertTrue("${img.id}: logo", img.logoUrl?.startsWith("https://") == true)

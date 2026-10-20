@@ -60,6 +60,9 @@ class ImageRepo(private val context: Context, private val dao: VmDao) {
     private suspend fun merge(json: String) {
         val parsed = Catalogue.parse(json, System.currentTimeMillis())
         _osLogos.value = parsed.osLogos
+        // Systems dropped from the catalogue disappear unless a VM still uses them.
+        val ids = parsed.images.map { it.id }.toSet()
+        dao.catalogueImages().filter { it.id !in ids && dao.vmCountForImage(it.id) == 0 }.forEach { dao.deleteImage(it.id) }
         for (img in parsed.images) {
             val old = dao.image(img.id)
             when {

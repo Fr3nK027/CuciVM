@@ -1,17 +1,14 @@
 {
   "version": 1,
-  "about": "CuciVM system catalogue. The app reads this file from GitHub and falls back to the copy built into the APK. Files over 2 GB: list them in 'parts' (each under 2 GB, joined in order) or point 'url' at an official mirror. Logos are links to their official/Commons sources, not copies.",
+  "about": "CuciVM system catalogue. The app reads this file from GitHub and falls back to the copy built into the APK. 'app_space' entries need no download: the engine is built into the app. Files over 2 GB: list them in 'parts' (each under 2 GB, joined in order) or point 'url' at an official mirror. Logos are links to their official/Commons sources, not copies.",
   "images": [
     {
-      "id": "android-8.1-twoyi",
+      "id": "android-space",
       "os": "android",
-      "name": "Android 8.1",
-      "version": "Twoyi 0.5.4",
+      "name": "Android",
+      "version": "Spazio app",
       "arch": "arm64",
-      "engine": "android_container",
-      "url": "https://github.com/twoyi/twoyi/releases/download/0.5.4/twoyi_0.5.4-03211927-release.apk",
-      "sha256": "ca5e25b3d1852c3b9df8f776f5798269de3c3c40fbf4b92c3768f483ee1a71b5",
-      "size": 209364444,
+      "engine": "app_space",
       "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Android_robot.svg/250px-Android_robot.svg.png"
     },
     {
@@ -22,7 +19,9 @@
       "arch": "arm64",
       "engine": "proot",
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.2-aarch64.tar.gz",
-      "mirrors": ["https://mirrors.edge.kernel.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.2-aarch64.tar.gz"],
+      "mirrors": [
+        "https://mirrors.edge.kernel.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.2-aarch64.tar.gz"
+      ],
       "sha256": "9bf70a7f18ea44094cbb5f70c58f9af129c8214745743db0e68e5502cc2ce773",
       "size": 4028030,
       "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Alpine_Linux.svg/250px-Alpine_Linux.svg.png",
@@ -37,7 +36,9 @@
       "arch": "arm64",
       "engine": "proot",
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.2-aarch64.tar.gz",
-      "mirrors": ["https://mirrors.edge.kernel.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.2-aarch64.tar.gz"],
+      "mirrors": [
+        "https://mirrors.edge.kernel.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.2-aarch64.tar.gz"
+      ],
       "sha256": "9bf70a7f18ea44094cbb5f70c58f9af129c8214745743db0e68e5502cc2ce773",
       "size": 4028030,
       "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Xfce_logo.svg/250px-Xfce_logo.svg.png",

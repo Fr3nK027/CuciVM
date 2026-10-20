@@ -77,6 +77,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cuvm.R
 import com.cuvm.CuciVm
 import com.cuvm.engine.VmState
+import com.cuvm.engine.AppSpace
 import com.cuvm.ui.home.stateText
 import com.cuvm.vnc.Keysyms
 import com.cuvm.vnc.RfbClient
@@ -102,12 +103,8 @@ fun DisplayScreen(id: String, onToPhone: () -> Unit, onSettings: () -> Unit, onS
     }
 
     val v = vm ?: return
-    // Android guests have their own activity/process; this screen only shows their preparation.
     val engineType by produceState<String?>(null, v.imageId) { value = CuciVm.vms.image(v.imageId)?.engine }
-    val isAndroid = engineType == "android_container"
-    LaunchedEffect(state, isAndroid) {
-        if (isAndroid && (state is VmState.Running || state is VmState.Booting)) { CuciVm.runtime.showAndroid(v); onToPhone() }
-    }
+    if (engineType == AppSpace.ENGINE) return AppSpaceScreen(v, onToPhone, onSettings)
     Box(
         Modifier.fillMaxSize().background(Color.Black)
             .then(if (v.cutoutMode == "exclude") Modifier.windowInsetsPadding(WindowInsets.safeDrawing) else Modifier),

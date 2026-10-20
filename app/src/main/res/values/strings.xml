@@ -207,9 +207,18 @@
 
     <string name="recents">Recents</string>
     <string name="home">Home</string>
-    <string name="android_booting">Starting %1$s…</string>
-    <string name="another_android">Shut down the other Android VM first: only one runs at a time.</string>
-    <string name="state_patch">Adapting the system to CuciVM…</string>
+    <string name="import_apps">Add apps</string>
+    <string name="import_one">Add</string>
+    <string name="imported">Added</string>
+    <string name="import_failed">Could not add the app</string>
+    <string name="import_apk_file">Add from an APK file</string>
+    <string name="search">Search</string>
+    <string name="system_apps">System apps</string>
+    <string name="space_empty_title">This space is empty</string>
+    <string name="space_empty_body">Add the apps you want here. Each one starts fresh, with its own accounts and data, separate from the phone.</string>
+    <string name="app_start_failed">The app did not start</string>
+    <string name="remove_app">Remove app</string>
+    <string name="remove_app_confirm">Remove %1$s and its data from this space? The app on your phone is not touched.</string>
 
     <string name="notif_channel">Running VMs</string>
     <string name="notif_stop_all">Shut down all</string>

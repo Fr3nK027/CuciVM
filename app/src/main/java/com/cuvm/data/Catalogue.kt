@@ -28,7 +28,8 @@ object Catalogue {
                 versionLabel = o.optString("version"), arch = o.optString("arch", "arm64"),
                 engine = o.getString("engine"), source = "catalogue",
                 downloadUrl = o.optStringOrNull("url"), sha256 = o.optStringOrNull("sha256"),
-                sizeBytes = o.optLong("size"), localPath = null, status = "remote",
+                sizeBytes = o.optLong("size"), localPath = null,
+                status = if (o.getString("engine") == "app_space") "ready" else "remote", // built into the app, nothing to download
                 createdAt = now, updatedAt = now,
                 logoUrl = o.optStringOrNull("logo"),
                 mirrors = o.optJSONArray("mirrors")?.toString(),

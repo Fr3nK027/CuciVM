@@ -205,9 +205,18 @@
 
     <string name="recents">Recenti</string>
     <string name="home">Home</string>
-    <string name="android_booting">Avvio di %1$s…</string>
-    <string name="another_android">Spegni prima l\'altra VM Android: ne gira una alla volta.</string>
-    <string name="state_patch">Adattamento del sistema a CuciVM…</string>
+    <string name="import_apps">Aggiungi app</string>
+    <string name="import_one">Aggiungi</string>
+    <string name="imported">Aggiunta</string>
+    <string name="import_failed">Impossibile aggiungere l\'app</string>
+    <string name="import_apk_file">Aggiungi da un file APK</string>
+    <string name="search">Cerca</string>
+    <string name="system_apps">App di sistema</string>
+    <string name="space_empty_title">Questo spazio è vuoto</string>
+    <string name="space_empty_body">Aggiungi qui le app che vuoi. Ognuna parte da zero, con i suoi account e i suoi dati, separata dal telefono.</string>
+    <string name="app_start_failed">L\'app non si è avviata</string>
+    <string name="remove_app">Rimuovi app</string>
+    <string name="remove_app_confirm">Rimuovere %1$s e i suoi dati da questo spazio? L\'app sul telefono non viene toccata.</string>
 
     <string name="notif_channel">VM accese</string>
     <string name="notif_stop_all">Spegni tutte</string>
