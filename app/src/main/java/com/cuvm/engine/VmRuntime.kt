@@ -117,8 +117,8 @@ class VmRuntime(
         }
         set(id, VmState.Stopping)
         scope.launch {
-            p.destroy()
-            if (!p.waitFor(10, TimeUnit.SECONDS)) p.destroyForcibly()
+            repo.get(id)?.let { engine.stopTree(it) }
+            if (!p.waitFor(3, TimeUnit.SECONDS)) p.destroyForcibly()
         }
     }
 

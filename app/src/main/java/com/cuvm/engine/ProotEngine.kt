@@ -1,6 +1,8 @@
 package com.cuvm.engine
 
 import android.content.Context
+import android.system.Os
+import android.system.OsConstants
 import com.cuvm.data.Catalogue
 import com.cuvm.data.GuestImage
 import com.cuvm.data.Vm
@@ -24,6 +26,43 @@ class ProotEngine(private val context: Context) : GuestEngine {
     private val running = java.util.concurrent.ConcurrentHashMap<String, Process>()
 
     fun cancelSetup(vmId: String) { running.remove(vmId)?.destroy() }
+
+    /**
+     * Ends every process of a VM. Signalling proot alone is not enough: it ignores SIGTERM, and if it is
+     * killed its tracees are detached and keep running. So: find proot by its rootfs argument, take its
+     * whole descendant tree, SIGTERM it (desktops save and quit), then SIGKILL what is left.
+     */
+    fun stopTree(vm: Vm, graceMs: Long = 5000) {
+        val tree = descendants(prootPids(vm))
+        tree.forEach { runCatching { Os.kill(it, OsConstants.SIGTERM) } }
+        val until = System.currentTimeMillis() + graceMs
+        while (System.currentTimeMillis() < until && tree.any { File("/proc/$it").exists() }) Thread.sleep(100)
+        descendants(prootPids(vm)).plus(tree).forEach { runCatching { Os.kill(it, OsConstants.SIGKILL) } }
+    }
+
+    private fun prootPids(vm: Vm): List<Int> {
+        val marker = rootfs(vm).path
+        return procPids().filter { pid ->
+            val cmd = runCatching { File("/proc/$pid/cmdline").readText() }.getOrDefault("")
+            cmd.contains("proot") && cmd.contains(marker)
+        }
+    }
+
+    private fun procPids() = File("/proc").list()?.mapNotNull { it.toIntOrNull() } ?: emptyList()
+
+    private fun descendants(roots: List<Int>): Set<Int> {
+        val parent = procPids().associateWith { pid ->
+            // /proc/<pid>/stat: "pid (comm) state ppid ..."; comm may contain spaces, so parse after ')'.
+            runCatching { File("/proc/$pid/stat").readText().substringAfterLast(')').trim().split(' ')[1].toInt() }.getOrDefault(-1)
+        }
+        val out = roots.toMutableSet()
+        var grew = true
+        while (grew) {
+            grew = false
+            for ((pid, ppid) in parent) if (ppid in out && out.add(pid)) grew = true
+        }
+        return out
+    }
 
     private fun track(vmId: String, p: Process): Process = p.also { running[vmId] = it }
 
