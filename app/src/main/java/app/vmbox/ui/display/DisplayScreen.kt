@@ -27,6 +27,9 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -211,17 +214,20 @@ private fun GuestView(
                 }
             }
 
-            // Invisible field that owns the soft keyboard; diffs against a sentinel to catch backspace.
+            // Invisible field that owns the soft keyboard. IMEs rewrite their composing word on every key,
+            // so diff old vs new text: chars after the common prefix are erased (backspace) or typed.
             BasicTextField(
                 value = typed,
                 onValueChange = { nv ->
                     val old = typed.text
-                    when {
-                        nv.text.length < old.length -> repeat(old.length - nv.text.length) { sendKey(Keysyms.BACKSPACE) }
-                        nv.text.startsWith(old) -> nv.text.substring(old.length).codePoints().forEach { sendKey(Keysyms.forChar(it)) }
-                    }
-                    typed = TextFieldValue(SENTINEL, TextRange(SENTINEL.length))
+                    val p = old.commonPrefixWith(nv.text).length
+                    repeat(old.length - p) { sendKey(Keysyms.BACKSPACE) }
+                    nv.text.substring(p).codePoints().forEach { sendKey(Keysyms.forChar(it)) }
+                    // Refill the sentinel so backspace on an "empty" field still reaches the guest; trim when long.
+                    typed = if (nv.composition == null && (nv.text.length < SENTINEL.length || nv.text.length > 64))
+                        TextFieldValue(SENTINEL, TextRange(SENTINEL.length)) else nv
                 },
+                keyboardOptions = KeyboardOptions(autoCorrectEnabled = false, capitalization = KeyboardCapitalization.None, keyboardType = KeyboardType.Ascii),
                 modifier = Modifier.size(1.dp).focusRequester(focus).onPreviewKeyEvent { e ->
                     if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                     val sym = when (e.key) {

@@ -82,6 +82,11 @@ class DownloadWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(c
         val id = inputData.getString("id") ?: return@withContext Result.failure()
         val img = dao.image(id) ?: return@withContext Result.failure()
         val url = img.downloadUrl ?: return@withContext Result.failure()
+        // Two catalogue entries can share one tarball (same rootfs, different desktop): reuse the file.
+        img.sha256?.let { dao.readyImageBySha(it) }?.let { twin ->
+            dao.updateImage(img.copy(status = "ready", localPath = twin.localPath, updatedAt = System.currentTimeMillis()))
+            return@withContext Result.success()
+        }
         dao.updateImage(img.copy(status = "downloading", updatedAt = System.currentTimeMillis()))
         val part = repo.partFile(id)
         try {

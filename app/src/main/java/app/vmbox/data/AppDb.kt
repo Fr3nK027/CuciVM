@@ -21,6 +21,9 @@ interface VmDao {
     @Query("select * from guest_image where id = :id")
     suspend fun image(id: String): GuestImage?
 
+    @Query("select * from guest_image where sha256 = :sha and status = 'ready' limit 1")
+    suspend fun readyImageBySha(sha: String): GuestImage?
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertImagesIfMissing(images: List<GuestImage>)
 

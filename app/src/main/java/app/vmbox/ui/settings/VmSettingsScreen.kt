@@ -1,5 +1,8 @@
 package app.vmbox.ui.settings
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.rememberScrollState
@@ -44,6 +47,10 @@ fun VmSettingsScreen(id: String, onBack: () -> Unit, onOpen: (String) -> Unit, o
     val v = vm ?: return
     LaunchedEffect(v.imageId) { image = VmBox.vms.image(v.imageId)?.name ?: "" }
     fun save(f: (Vm) -> Vm) = scope.launch { VmBox.vms.update(f(v)) }
+    // Download folder is bound into the guest only once storage access is granted (legacy storage, targetSdk 28).
+    val storage = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { r ->
+        if (r.values.all { it }) save { it.copy(shareFolder = true) }
+    }
     val running = state.active
     val restartNote = if (running) stringResource(R.string.applies_next_boot) else null
 
@@ -72,7 +79,10 @@ fun VmSettingsScreen(id: String, onBack: () -> Unit, onOpen: (String) -> Unit, o
 
             CategoryHeader(stringResource(R.string.cat_sharing))
             SwitchRow(stringResource(R.string.share_clipboard), v.shareClipboard) { c -> save { it.copy(shareClipboard = c) } }
-            SwitchRow(stringResource(R.string.share_folder), v.shareFolder, stringResource(if (v.shareFolder) R.string.share_folder_on else R.string.off)) { c -> save { it.copy(shareFolder = c) } }
+            SwitchRow(stringResource(R.string.share_folder), v.shareFolder, stringResource(if (v.shareFolder) R.string.share_folder_on else R.string.off)) { c ->
+                if (c) storage.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE))
+                else save { it.copy(shareFolder = false) }
+            }
             SwitchRow(stringResource(R.string.host_notifications), v.hostNotifications) { c -> save { it.copy(hostNotifications = c) } }
 
             CategoryHeader(stringResource(R.string.cat_power))
