@@ -163,7 +163,7 @@
     <string name="reset_ids">Nuovi identificativi</string>
     <string name="reset_ids_summary">Numero di serie e Android ID casuali</string>
     <string name="cat_window">Finestra</string>
-    <string name="small_window_summary">Finestra mobile sopra le altre app (in arrivo)</string>
+    <string name="small_window_summary">Uscendo da CuciVM la VM resta visibile in una finestrella sopra le altre app</string>
     <string name="show_mini_ball">Mostra la mini ball</string>
     <string name="cat_boot">Avvio</string>
     <string name="boot_background">Avvia in background</string>

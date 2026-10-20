@@ -165,7 +165,7 @@
     <string name="reset_ids">New identifiers</string>
     <string name="reset_ids_summary">Random serial number and Android ID</string>
     <string name="cat_window">Window</string>
-    <string name="small_window_summary">Floating window over other apps (coming soon)</string>
+    <string name="small_window_summary">Leaving CuciVM keeps the VM on screen in a small window over other apps</string>
     <string name="show_mini_ball">Show the mini ball</string>
     <string name="cat_boot">Start</string>
     <string name="boot_background">Start in the background</string>

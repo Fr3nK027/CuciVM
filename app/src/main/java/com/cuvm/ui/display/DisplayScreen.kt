@@ -82,6 +82,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cuvm.R
 import com.cuvm.CuciVm
 import com.cuvm.engine.VmState
+import com.cuvm.Pip
 import com.cuvm.engine.AppSpace
 import com.cuvm.ui.home.stateText
 import com.cuvm.vnc.Keysyms
@@ -110,6 +111,10 @@ fun DisplayScreen(id: String, onToPhone: () -> Unit, onSettings: () -> Unit, onS
     val v = vm ?: return
     val engineType by produceState<String?>(null, v.imageId) { value = CuciVm.vms.image(v.imageId)?.engine }
     if (engineType == AppSpace.ENGINE) return AppSpaceScreen(v, onToPhone, onSettings)
+    DisposableEffect(v.smallWindow, v.width, v.height) {
+        Pip.aspect = if (v.smallWindow) Pip.aspectFor(v.width, v.height) else null
+        onDispose { Pip.aspect = null }
+    }
     // A landscape guest (desktop/laptop resolutions) turns the phone sideways while shown.
     DisposableEffect(v.width > v.height) {
         val a = ctx as Activity
@@ -123,7 +128,9 @@ fun DisplayScreen(id: String, onToPhone: () -> Unit, onSettings: () -> Unit, onS
     ) {
         val s = state
         if (s is VmState.Running && engineType == "proot") {
-            GuestView(port = s.port, fps = v.refreshRate, shareClipboard = v.shareClipboard, navBar = v.navBar, miniBall = v.miniBall,
+            // In the small window only the picture is shown: no key bar, no mini ball.
+            GuestView(port = s.port, fps = v.refreshRate, shareClipboard = v.shareClipboard,
+                navBar = if (Pip.active) "none" else v.navBar, miniBall = v.miniBall && !Pip.active,
                 onShutdown = { CuciVm.runtime.stop(id) }, onToPhone = onToPhone, onSettings = onSettings, onSwitch = onSwitch, selfId = id)
         } else {
             Column(Modifier.align(Alignment.Center).padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {

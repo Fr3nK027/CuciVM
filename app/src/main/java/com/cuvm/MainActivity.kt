@@ -1,6 +1,9 @@
 package com.cuvm
 
+import android.app.PictureInPictureParams
 import android.content.Intent
+import android.content.res.Configuration
+import android.util.Rational
 import android.os.Bundle
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -53,7 +56,31 @@ class MainActivity : ComponentActivity() {
         intent.getStringExtra(EXTRA_OPEN_VM)?.let { openVm = it }
     }
 
+    // "Small window": leaving the app while a VM is shown keeps it on screen as picture-in-picture.
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        Pip.aspect?.let { enterPictureInPictureMode(PictureInPictureParams.Builder().setAspectRatio(it).build()) }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        Pip.active = isInPictureInPictureMode
+    }
+
     companion object { const val EXTRA_OPEN_VM = "open_vm" }
+}
+
+/** Picture-in-picture state shared with the VM screen. */
+object Pip {
+    /** Set while a VM with "small window" on is shown; null = no PiP on leave. */
+    @Volatile var aspect: Rational? = null
+    var active by mutableStateOf(false)
+
+    /** Android accepts aspect ratios between 1:2.39 and 2.39:1. */
+    fun aspectFor(w: Int, h: Int): Rational {
+        val r = (w.toFloat() / h).coerceIn(1 / 2.39f + 0.01f, 2.39f - 0.01f)
+        return Rational((r * 1000).toInt(), 1000)
+    }
 }
 
 @Composable

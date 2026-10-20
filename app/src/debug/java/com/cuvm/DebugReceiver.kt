@@ -30,6 +30,8 @@ class DebugReceiver : BroadcastReceiver() {
                     "STOP" -> vm?.let { CuciVm.runtime.stop(it.id); log("stop ${it.name}") }
                     "REPAIR" -> vm?.let { CuciVm.vms.repair(it); log("repair ${it.name}") }
                     "RESET" -> vm?.let { CuciVm.vms.reset(it); log("reset ${it.name}") }
+                    // --ez on true|false
+                    "SMALLWINDOW" -> vm?.let { CuciVm.vms.update(it.copy(smallWindow = intent.getBooleanExtra("on", true))); log("smallWindow ${it.name}") }
                     // App spaces: --es name <vm> --es pkg <package>
                     "IMPORT", "LAUNCH", "APPS" -> {
                         val v = vm ?: return@launch log("no VM")
