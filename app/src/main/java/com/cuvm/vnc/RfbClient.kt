@@ -1,6 +1,7 @@
 package com.cuvm.vnc
 
 import android.graphics.Bitmap
+import com.cuvm.BuildConfig
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.DataInputStream
@@ -94,11 +95,13 @@ class RfbClient(
     }
 
     private fun loop() {
-        val frameMs = 1000L / maxFps.coerceIn(1, 120)
         while (!closed) {
             when (val type = input.readUnsignedByte()) {
                 0 -> {
                     val started = System.currentTimeMillis()
+                    // Pipelined: ask for the next frame now, the server builds it while this one is read.
+                    // Frame pacing is the server's job (Xvnc -FrameRate).
+                    synchronized(this) { requestUpdate(incremental = true) }
                     input.readByte()
                     repeat(input.readUnsignedShort()) {
                         val x = input.readUnsignedShort(); val y = input.readUnsignedShort()
@@ -123,15 +126,24 @@ class RfbClient(
                     val bmp = bitmap!!
                     bmp.copyPixelsFromBuffer(ByteBuffer.wrap(fb))
                     onFrame(bmp)
-                    val wait = frameMs - (System.currentTimeMillis() - started)
-                    if (wait > 0) Thread.sleep(wait)
-                    synchronized(this) { requestUpdate(incremental = true) }
+                    if (BuildConfig.DEBUG) stats(System.currentTimeMillis() - started)
                 }
                 1 -> { input.readByte(); input.readUnsignedShort(); input.skipBytes(input.readUnsignedShort() * 6) }
                 2 -> Unit // bell
                 3 -> { input.skipBytes(3); onCutText(readString()) }
                 else -> throw IOException("unexpected message $type")
             }
+        }
+    }
+
+    // Debug builds: frames/s, decode+copy time and bytes/s every 5 s (logcat tag CuciVmRfb).
+    private var statFrames = 0; private var statMs = 0L; private var statSince = System.currentTimeMillis()
+    private fun stats(ms: Long) {
+        statFrames++; statMs += ms
+        val now = System.currentTimeMillis()
+        if (now - statSince >= 5000) {
+            android.util.Log.d("CuciVmRfb", "fps=%.1f decode=%.1fms %dx%d".format(statFrames * 1000f / (now - statSince), statMs.toFloat() / statFrames, width, height))
+            statFrames = 0; statMs = 0; statSince = now
         }
     }
 
