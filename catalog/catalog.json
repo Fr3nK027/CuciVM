@@ -51,7 +51,21 @@
       "size": 35409704,
       "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/ReactOS_logo.svg/250px-ReactOS_logo.svg.png",
       "setup": "export DEBIAN_FRONTEND=noninteractive && A='-o APT::Sandbox::User=root' && apt-get $A update && apt-get $A install -y --no-install-recommends tigervnc-standalone-server qemu-system-x86 qemu-system-gui qemu-utils unzip wget ca-certificates tzdata && wget -qO /tmp/ros.zip 'https://github.com/reactos/reactos/releases/download/0.4.15-release/ReactOS-0.4.15-release-1-gdbb43bbaeb2-x86-iso.zip' && echo '2be97d87fd43c93185aa841c1742fe9265c58aba0e517e20122df19d9add1935  /tmp/ros.zip' | sha256sum -c - && unzip -o /tmp/ros.zip -d /tmp/ros && mv /tmp/ros/*.iso /root/reactos.iso && rm -rf /tmp/ros /tmp/ros.zip && qemu-img create -f qcow2 /root/reactos.qcow2 8G",
-      "session": "exec qemu-system-i386 -m 1024 -smp 2 -accel tcg,thread=multi -drive file=/root/reactos.qcow2,if=ide -cdrom /root/reactos.iso -boot order=dc -vga std -usb -device usb-tablet -nic user,model=e1000 -display gtk,full-screen=on,show-menubar=off"
+      "session": "exec qemu-system-i386 -m 1024 -smp 2 -accel tcg,thread=multi -drive file=/root/reactos.qcow2,if=ide -cdrom /root/reactos.iso -boot order=dc -vga std -usb -device usb-tablet -nic user,model=e1000 -display gtk,full-screen=on,show-menubar=off,zoom-to-fit=on"
+    },
+    {
+      "id": "windows-iso-qemu",
+      "os": "windows_full",
+      "name": "Windows completo · tua ISO (QEMU)",
+      "version": "x86_64 · molto lento",
+      "arch": "x86 (emulato)",
+      "engine": "proot",
+      "url": "https://github.com/termux/proot-distro/releases/download/v4.29.0/debian-trixie-aarch64-pd-v4.29.0.tar.xz",
+      "sha256": "3834a11cbc6496935760bdc20cca7e2c25724d0cd8f5e4926da8fd5ca1857918",
+      "size": 35409704,
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Windows_logo_-_2021.svg/250px-Windows_logo_-_2021.svg.png",
+      "setup": "export DEBIAN_FRONTEND=noninteractive && A='-o APT::Sandbox::User=root' && apt-get $A update && apt-get $A install -y --no-install-recommends tigervnc-standalone-server qemu-system-x86 qemu-system-gui qemu-utils x11-utils ca-certificates tzdata && qemu-img create -f qcow2 /root/windows.qcow2 64G",
+      "session": "ISO=$(ls /mnt/shared/*.iso 2>/dev/null | head -n 1); if [ -z \"$ISO\" ]; then exec xmessage -center 'Metti il file .iso di Windows nella cartella Download del telefono, attiva Impostazioni VM > Condividi la cartella Download e riavvia la VM.'; fi; exec qemu-system-x86_64 -m 3072 -smp 4 -accel tcg,thread=multi -cpu max -drive file=/root/windows.qcow2,if=ide -cdrom \"$ISO\" -boot order=dc -vga std -usb -device usb-tablet -nic user,model=e1000 -display gtk,full-screen=on,show-menubar=off,zoom-to-fit=on"
     },
     {
       "id": "alpine-openbox",
