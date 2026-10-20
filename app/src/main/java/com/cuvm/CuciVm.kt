@@ -3,6 +3,7 @@ package com.cuvm
 import android.app.Application
 import android.content.Context
 import com.cuvm.data.AppDb
+import com.cuvm.data.BackupRepo
 import com.cuvm.data.ImageRepo
 import com.cuvm.data.Prefs
 import com.cuvm.data.VmRepo
@@ -25,6 +26,7 @@ object CuciVm {
     lateinit var engine: ProotEngine; private set
     lateinit var space: AppSpace; private set
     lateinit var runtime: VmRuntime; private set
+    lateinit var backups: BackupRepo; private set
 
     fun init(app: Application) {
         db = AppDb.build(app)
@@ -34,6 +36,7 @@ object CuciVm {
         prefs = Prefs(app)
         engine = ProotEngine(app)
         runtime = VmRuntime(app, vms, engine, space)
+        backups = BackupRepo(app, vms, db.dao())
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             engine.install()
             images.syncCatalogue()

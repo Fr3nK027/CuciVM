@@ -44,8 +44,17 @@ fun VmSettingsScreen(id: String, onBack: () -> Unit, onOpen: (String) -> Unit, o
     val scope = rememberCoroutineScope()
     var dlg by remember { mutableStateOf<Dlg?>(null) }
     var image by remember { mutableStateOf("") }
+    var engineType by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf<String?>(null) }   // backup in progress / result message
     val v = vm ?: return
-    LaunchedEffect(v.imageId) { image = CuciVm.vms.image(v.imageId)?.name ?: "" }
+    LaunchedEffect(v.imageId) { CuciVm.vms.image(v.imageId)?.let { image = it.name; engineType = it.engine } }
+    val savedMsg = stringResource(R.string.backup_saved)
+    val backupFile = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/gzip")) { uri ->
+        if (uri != null) scope.launch {
+            busy = ""
+            busy = runCatching { CuciVm.backups.backup(v, uri) }.fold({ savedMsg }, { it.message ?: it.toString() })
+        }
+    }
     fun save(f: (Vm) -> Vm) = scope.launch { CuciVm.vms.update(f(v)) }
     // Download folder is bound into the guest only once storage access is granted (legacy storage, targetSdk 28).
     val storage = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { r ->
@@ -85,6 +94,13 @@ fun VmSettingsScreen(id: String, onBack: () -> Unit, onOpen: (String) -> Unit, o
             }
             SwitchRow(stringResource(R.string.host_notifications), v.hostNotifications) { c -> save { it.copy(hostNotifications = c) } }
 
+            if (engineType != "app_space") {
+                CategoryHeader(stringResource(R.string.backup_restore))
+                PrefRow(stringResource(R.string.backup_vm), if (running) stringResource(R.string.stop_first) else stringResource(R.string.backup_vm_summary), enabled = !running && busy != "") {
+                    backupFile.launch(v.name.replace(Regex("[^A-Za-z0-9._-]"), "_") + ".cucivm.tar.gz")
+                }
+            }
+
             CategoryHeader(stringResource(R.string.cat_power))
             if (running) PrefRow(stringResource(R.string.shutdown_vm)) { CuciVm.runtime.stop(id) }
             else PrefRow(stringResource(R.string.start_vm)) { CuciVm.runtime.start(id) }
@@ -97,6 +113,14 @@ fun VmSettingsScreen(id: String, onBack: () -> Unit, onOpen: (String) -> Unit, o
         }
     }
 
+    busy?.let { msg ->
+        if (msg.isEmpty()) androidx.compose.material3.AlertDialog(onDismissRequest = {}, confirmButton = {},
+            title = { Text(stringResource(R.string.backup_vm)) },
+            text = { androidx.compose.material3.LinearProgressIndicator(Modifier.padding(top = 8.dp)) })
+        else androidx.compose.material3.AlertDialog(onDismissRequest = { busy = null },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { busy = null }) { Text(stringResource(R.string.ok)) } },
+            text = { Text(msg) })
+    }
     when (dlg) {
         Dlg.REFRESH -> TextDialog(stringResource(R.string.refresh_rate), v.refreshRate.toString(), numeric = true,
             validate = { it.toIntOrNull() in 1..120 }, onOk = { t -> save { it.copy(refreshRate = t.toInt()) } }, onDismiss = { dlg = null })

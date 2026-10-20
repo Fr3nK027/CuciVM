@@ -20,6 +20,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -151,10 +153,25 @@ fun InfoScreen(onBack: () -> Unit) {
 
 @Composable
 fun BackupScreen(onBack: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var status by remember { mutableStateOf<String?>(null) }
+    var working by remember { mutableStateOf(false) }
+    val done = stringResource(R.string.restore_done)
+    val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            working = true
+            status = runCatching { CuciVm.backups.restore(uri) }.fold({ done.format(it.name) }, { it.message ?: it.toString() })
+            working = false
+        }
+    }
     DetailScaffold(stringResource(R.string.backup_restore), onBack) { mod ->
         Column(mod.fillMaxSize().padding(32.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(stringResource(R.string.no_backups), style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(R.string.backup_coming), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
+            Text(stringResource(R.string.backup_how), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            androidx.compose.material3.FilledTonalButton(onClick = { pick.launch(arrayOf("application/gzip", "application/x-gzip", "*/*")) }, enabled = !working, modifier = Modifier.padding(top = 24.dp)) {
+                Text(stringResource(R.string.restore_from_file))
+            }
+            if (working) androidx.compose.material3.LinearProgressIndicator(Modifier.padding(top = 16.dp))
+            status?.let { Text(it, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 16.dp)) }
         }
     }
 }

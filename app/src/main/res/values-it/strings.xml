@@ -201,8 +201,12 @@
     <string name="licences">Componenti open source</string>
     <string name="licence_in_guest">%1$s · installato nel sistema ospite</string>
     <string name="licence_alpine">Scaricato da alpinelinux.org, varie licenze</string>
-    <string name="no_backups">Nessun backup</string>
-    <string name="backup_coming">Salvare e ripristinare le VM su file arriva nella prossima versione.</string>
+    <string name="backup_how">Salva una VM dalle sue impostazioni (sezione Backup). Qui la riporti indietro da un file.</string>
+    <string name="restore_from_file">Ripristina da un file</string>
+    <string name="restore_done">Ripristinata come “%1$s”.</string>
+    <string name="backup_vm">Salva una copia su file</string>
+    <string name="backup_vm_summary">Tutto il sistema e le sue impostazioni, in un .tar.gz</string>
+    <string name="backup_saved">Backup salvato.</string>
 
     <string name="recents">Recenti</string>
     <string name="home">Home</string>

@@ -203,8 +203,12 @@
     <string name="licences">Open-source parts</string>
     <string name="licence_in_guest">%1$s · installed inside the guest</string>
     <string name="licence_alpine">Downloaded from alpinelinux.org, several licences</string>
-    <string name="no_backups">No backups</string>
-    <string name="backup_coming">Saving and restoring VMs to a file is coming in the next version.</string>
+    <string name="backup_how">Save a VM from its settings (Backups section). Here you bring one back from a file.</string>
+    <string name="restore_from_file">Restore from a file</string>
+    <string name="restore_done">Restored as “%1$s”.</string>
+    <string name="backup_vm">Save a copy to a file</string>
+    <string name="backup_vm_summary">The whole system and its settings, in one .tar.gz</string>
+    <string name="backup_saved">Backup saved.</string>
 
     <string name="recents">Recents</string>
     <string name="home">Home</string>

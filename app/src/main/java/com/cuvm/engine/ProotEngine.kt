@@ -143,7 +143,8 @@ class ProotEngine(private val context: Context) : GuestEngine {
             } finally {
                 plain.delete()
             }
-            if (!File(root, "bin/sh").exists()) throw IOException("extract failed (see extract.log)")
+            // bin/sh is often an absolute symlink (/bin/busybox): check the link itself, not its host target.
+            if (!java.nio.file.Files.exists(File(root, "bin/sh").toPath(), java.nio.file.LinkOption.NOFOLLOW_LINKS)) throw IOException("extract failed (see extract.log)")
             // Often symlinks into /run: replace with plain files.
             File(root, "etc/resolv.conf").apply { delete(); writeText("nameserver 1.1.1.1\nnameserver 8.8.8.8\n") }
             File(root, "etc/hosts").apply { delete(); writeText("127.0.0.1 localhost\n::1 localhost\n") }
