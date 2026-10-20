@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.VmBox" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+    <!-- tokens.json color.dark.bg / accent -->
+    <color name="bg">#FF111416</color>
+    <color name="accent">#FFA8C8FF</color>
+    <color name="accent_container">#FF254777</color>
+</resources>
