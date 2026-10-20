@@ -71,13 +71,15 @@ class AndroidEngine(private val context: Context) {
             val total = z.entries.count().coerceAtLeast(1)
             var n = 0
             val buf = ByteArray(1 shl 16)
+            // Read-only dirs in the ROM would block files written later: set dir modes at the end.
+            val dirModes = mutableListOf<Pair<File, Int>>()
             while (true) {
                 val e = z.nextEntry ?: break
                 val out = File(into, e.name)
                 if (!out.canonicalPath.startsWith(into.canonicalPath)) throw IOException("bad path ${e.name}")
                 val mode = if (e.hasWindowsAttributes && (e.windowsAttributes and 0x8000) != 0) e.windowsAttributes ushr 16 else 0
                 when {
-                    e.isDirectory -> out.mkdirs()
+                    e.isDirectory -> { out.mkdirs(); if (mode != 0) dirModes += out to mode }
                     (mode and 0xF000) == 0xA000 -> {
                         val target = ByteArray(e.size.toInt()).also { readFully(z, it) }.toString(Charsets.UTF_8)
                         out.parentFile?.mkdirs(); out.delete()
@@ -85,12 +87,15 @@ class AndroidEngine(private val context: Context) {
                     }
                     else -> {
                         out.parentFile?.mkdirs()
+                        out.delete() // a read-only duplicate entry would make the open fail
                         out.outputStream().use { o -> while (true) { val r = z.read(buf); if (r < 0) break; o.write(buf, 0, r) } }
+                        // Owner keeps read/write: the path patch rewrites files after extraction.
+                        if (mode != 0) Os.chmod(out.path, (mode and 0xFFF) or 0x180)
                     }
                 }
-                if (mode != 0 && (mode and 0xF000) != 0xA000) Os.chmod(out.path, mode and 0xFFF)
                 if (++n % 500 == 0) progress(n * 100 / total)
             }
+            dirModes.forEach { (d, m) -> Os.chmod(d.path, (m and 0xFFF) or 0x1C0) }
         }
     }
 
