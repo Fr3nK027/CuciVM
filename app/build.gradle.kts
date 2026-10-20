@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "app.vmbox"
+    namespace = "com.cuvm"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "app.vmbox"
+        applicationId = "com.cuvm"
         minSdk = 29
         // Sideload only. 28 keeps exec of guest binaries from app storage allowed (see replica/architecture.md).
         @Suppress("ExpiredTargetSdkVersion")

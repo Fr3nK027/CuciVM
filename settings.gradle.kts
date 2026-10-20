@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "vmbox"
+rootProject.name = "CuciVM"
 include(":app")
