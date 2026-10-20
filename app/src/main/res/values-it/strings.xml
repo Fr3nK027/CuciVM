@@ -47,6 +47,10 @@
     <string name="add_custom_image">Usa un mio rootfs (.tar.gz)</string>
     <string name="add_custom_image_hint">Un filesystem Linux arm64 che contiene già Xvnc (TigerVNC).</string>
     <string name="image_version">Versione %1$s · %2$s</string>
+    <string name="kind_app_space">App del telefono in copie separate · veloce, nessun download</string>
+    <string name="kind_windows_apps">Programmi Windows su desktop Linux · buona velocità</string>
+    <string name="kind_emulated">PC completo emulato · lento</string>
+    <string name="kind_linux">Desktop Linux · velocità nativa</string>
     <string name="download">Scarica</string>
     <string name="downloaded">Pronto</string>
     <string name="vm_name">Nome della VM</string>

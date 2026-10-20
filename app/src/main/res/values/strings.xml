@@ -47,7 +47,10 @@
     <string name="create_step_name">Name</string>
     <string name="add_custom_image">Use my own rootfs (.tar.gz)</string>
     <string name="add_custom_image_hint">An arm64 Linux root filesystem that already includes Xvnc (TigerVNC).</string>
-    <string name="image_arch">%1$s · %2$s</string>
+    <string name="kind_app_space">Phone apps as separate copies · fast, nothing to download</string>
+    <string name="kind_windows_apps">Windows programs on a Linux desktop · good speed</string>
+    <string name="kind_emulated">Full emulated PC · slow</string>
+    <string name="kind_linux">Linux desktop · native speed</string>
     <string name="image_version">Version %1$s · %2$s</string>
     <string name="download">Download</string>
     <string name="downloaded">Ready</string>

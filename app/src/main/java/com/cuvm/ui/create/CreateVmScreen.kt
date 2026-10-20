@@ -137,7 +137,9 @@ fun CreateVmScreen(onBack: () -> Unit, onDone: () -> Unit) {
         Column(mod.fillMaxSize()) {
             when (step) {
                 0 -> LazyColumn(Modifier.weight(1f).selectableGroup(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(images, key = { it.id }) { img -> ImageItem(img, progress[img.id], img.id == imageId) { imageId = img.id } }
+                    // Android first, then Windows, then Linux (the order users asked for), A-Z inside.
+                    val order = listOf("android", "windows_apps", "windows_full", "linux")
+                    items(images.sortedWith(compareBy({ order.indexOf(it.os).let { i -> if (i < 0) 9 else i } }, { it.name })), key = { it.id }) { img -> ImageItem(img, progress[img.id], img.id == imageId) { imageId = img.id } }
                     item {
                         OutlinedButton(onClick = { pick.launch(arrayOf("application/gzip", "application/x-gzip", "application/x-tar", "*/*")) }, modifier = Modifier.fillMaxWidth()) {
                             Text(stringResource(R.string.add_custom_image))
@@ -171,6 +173,14 @@ fun CreateVmScreen(onBack: () -> Unit, onDone: () -> Unit) {
     }
 }
 
+/** What the user gets, and how fast, instead of engine names. */
+private fun kindLabel(img: GuestImage) = when {
+    img.engine == "app_space" -> R.string.kind_app_space
+    img.os == "windows_apps" -> R.string.kind_windows_apps
+    img.os == "windows_full" -> R.string.kind_emulated
+    else -> R.string.kind_linux
+}
+
 @Composable
 private fun ImageItem(img: GuestImage, progress: Float?, selected: Boolean, onSelect: () -> Unit) {
     val ready = img.status == "ready"
@@ -183,8 +193,9 @@ private fun ImageItem(img: GuestImage, progress: Float?, selected: Boolean, onSe
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
                 Text(img.name, style = MaterialTheme.typography.titleMedium)
-                Text(stringResource(R.string.image_arch, img.arch, img.engine), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(stringResource(R.string.image_version, img.versionLabel, "%.1f MB".format(img.sizeBytes / 1e6)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(kindLabel(img)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // App spaces download nothing: no size line.
+                if (img.sizeBytes > 0) Text(stringResource(R.string.image_version, img.versionLabel, "%.0f MB".format(img.sizeBytes / 1e6)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (progress != null) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
             }
             Spacer(Modifier.width(8.dp))
