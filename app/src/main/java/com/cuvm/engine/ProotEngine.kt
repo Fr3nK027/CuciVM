@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
+import org.tukaani.xz.XZInputStream
 import java.util.TimeZone
 
 interface GuestEngine {
@@ -56,9 +57,21 @@ class ProotEngine(private val context: Context) : GuestEngine {
             log("extract")
             val tmp = File(vm.dataPath, "rootfs.tmp")
             root.deleteRecursively(); tmp.deleteRecursively(); tmp.mkdirs()
-            val p = ProcessBuilder("/system/bin/tar", "x${compression(File(tar))}f", tar, "-C", tmp.path)
+            // toybox tar has no xz of its own: unpack .xz here first.
+            var input = File(tar)
+            var flag = compression(input)
+            if (flag == "J") {
+                val plain = File(vm.dataPath, "rootfs.tar")
+                XZInputStream(input.inputStream().buffered(1 shl 16)).use { i -> plain.outputStream().use { i.copyTo(it, 1 shl 16) } }
+                input = plain; flag = ""
+            }
+            // Under proot with --link2symlink: Android forbids hard links for apps, proot turns them into symlinks.
+            val p = withProot(ProcessBuilder(
+                File(engineDir, "proot").path, "--link2symlink", "-0", "/system/bin/tar", "x${flag}f", input.path, "-C", tmp.path,
+            ), File(vm.dataPath, "tmp").apply { mkdirs() })
                 .redirectErrorStream(true).redirectOutput(File(vm.dataPath, "extract.log")).start()
             p.waitFor() // device nodes (dev/console...) fail as non-root; checked below instead
+            if (input.path != tar) input.delete()
             // Some tarballs (proot-distro) wrap the system in one top-level folder.
             val only = tmp.listFiles()?.singleOrNull()
             val top = if (only != null && only.isDirectory && !File(tmp, "usr").exists()) only else tmp
@@ -111,10 +124,12 @@ class ProotEngine(private val context: Context) : GuestEngine {
             "TZ=" + TimeZone.getDefault().id,
             "/bin/sh", "-c", script,
         )
-        return ProcessBuilder(args).apply {
-            environment()["LD_LIBRARY_PATH"] = File(engineDir, "lib").path
-            environment()["PROOT_LOADER"] = File(engineDir, "loader").path
-            environment()["PROOT_TMP_DIR"] = tmp.path
-        }
+        return withProot(ProcessBuilder(args), tmp)
+    }
+
+    private fun withProot(pb: ProcessBuilder, tmp: File) = pb.apply {
+        environment()["LD_LIBRARY_PATH"] = File(engineDir, "lib").path
+        environment()["PROOT_LOADER"] = File(engineDir, "loader").path
+        environment()["PROOT_TMP_DIR"] = tmp.path
     }
 }

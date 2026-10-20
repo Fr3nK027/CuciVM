@@ -63,6 +63,7 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation(project(":Bcore"))
+    implementation("org.tukaani:xz:1.10") // .tar.xz root filesystems (toybox tar has no xz)
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303") // real org.json for JVM tests (android.jar has stubs)
