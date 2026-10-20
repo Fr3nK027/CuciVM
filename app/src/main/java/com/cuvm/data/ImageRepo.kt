@@ -24,6 +24,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.security.MessageDigest
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 class ImageRepo(private val context: Context, private val dao: VmDao) {
     val images = dao.images()
@@ -32,12 +33,43 @@ class ImageRepo(private val context: Context, private val dao: VmDao) {
     private val _progress = MutableStateFlow<Map<String, Float>>(emptyMap())
     val progress = _progress.asStateFlow()
 
-    private val dir get() = File(context.filesDir, "images").apply { mkdirs() }
+    /** os -> logo URL, from the catalogue; used for custom images. */
+    private val _osLogos = MutableStateFlow<Map<String, String>>(emptyMap())
+    val osLogos = _osLogos.asStateFlow()
 
-    suspend fun syncCatalogue() {
-        val now = System.currentTimeMillis()
-        dao.insertImagesIfMissing(Catalogue.images.map { it.copy(createdAt = now, updatedAt = now) })
-        // A download killed with the app stays "downloading" in the DB; WorkManager resumes it.
+    private val dir get() = File(context.filesDir, "images").apply { mkdirs() }
+    private val cached get() = File(context.filesDir, "catalog.json")
+    internal val http = OkHttpClient.Builder().connectTimeout(15, TimeUnit.SECONDS).readTimeout(60, TimeUnit.SECONDS).build()
+
+    /** Last good catalogue (downloaded copy, else the one in the APK), then the online one. */
+    suspend fun syncCatalogue() = withContext(Dispatchers.IO) {
+        val local = if (cached.exists()) cached.readText() else context.assets.open("catalog.json").bufferedReader().use { it.readText() }
+        merge(local)
+        try {
+            val body = http.newCall(Request.Builder().url(Catalogue.REMOTE_URL).build()).execute().use { r ->
+                if (!r.isSuccessful) throw IOException("HTTP ${r.code}")
+                r.body!!.string()
+            }
+            merge(body)          // throws on a malformed file, so a bad upload never replaces the cache
+            cached.writeText(body)
+        } catch (_: Exception) {
+            // Offline or catalogue not published yet: keep the local list.
+        }
+    }
+
+    private suspend fun merge(json: String) {
+        val parsed = Catalogue.parse(json, System.currentTimeMillis())
+        _osLogos.value = parsed.osLogos
+        for (img in parsed.images) {
+            val old = dao.image(img.id)
+            when {
+                old == null -> dao.upsertImage(img)
+                // Same file: refresh metadata, keep download state.
+                old.sha256 == img.sha256 -> dao.updateImage(img.copy(localPath = old.localPath, status = old.status, createdAt = old.createdAt))
+                // New version of the file: download again (existing VMs keep their extracted system).
+                else -> dao.updateImage(img.copy(createdAt = old.createdAt))
+            }
+        }
     }
 
     fun download(id: String) {
@@ -56,8 +88,8 @@ class ImageRepo(private val context: Context, private val dao: VmDao) {
     internal fun setProgress(id: String, p: Float?) =
         _progress.update { if (p == null) it - id else it + (id to p) }
 
-    internal fun partFile(id: String) = File(dir, "$id.part")
-    internal fun finalFile(id: String) = File(dir, "$id.tar.gz")
+    internal fun partFile(id: String, n: Int = 0) = File(dir, "$id.part$n")
+    internal fun finalFile(id: String) = File(dir, "$id.img")
 
     /** Copies a user-picked rootfs tarball into app storage. */
     suspend fun importCustom(uri: Uri, displayName: String): GuestImage = withContext(Dispatchers.IO) {
@@ -81,44 +113,39 @@ class DownloadWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(c
         val dao = CuciVm.db.dao()
         val id = inputData.getString("id") ?: return@withContext Result.failure()
         val img = dao.image(id) ?: return@withContext Result.failure()
-        val url = img.downloadUrl ?: return@withContext Result.failure()
-        // Two catalogue entries can share one tarball (same rootfs, different desktop): reuse the file.
+        // Two catalogue entries can share one file (same rootfs, different desktop): reuse it.
         img.sha256?.let { dao.readyImageBySha(it) }?.let { twin ->
             dao.updateImage(img.copy(status = "ready", localPath = twin.localPath, updatedAt = System.currentTimeMillis()))
             return@withContext Result.success()
         }
         dao.updateImage(img.copy(status = "downloading", updatedAt = System.currentTimeMillis()))
-        val part = repo.partFile(id)
         try {
-            val have = if (part.exists()) part.length() else 0L
-            val req = Request.Builder().url(url).apply { if (have > 0) header("Range", "bytes=$have-") }.build()
-            OkHttpClient().newCall(req).execute().use { resp ->
-                if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}")
-                val append = resp.code == 206
-                val total = if (append) have + resp.body!!.contentLength() else resp.body!!.contentLength()
-                var done = if (append) have else 0L
-                FileOutputStream(part, append).use { out ->
-                    val buf = ByteArray(64 * 1024)
-                    val input = resp.body!!.byteStream()
-                    while (true) {
-                        if (isStopped) return@withContext Result.failure()
-                        val n = input.read(buf)
-                        if (n < 0) break
-                        out.write(buf, 0, n)
-                        done += n
-                        if (total > 0) repo.setProgress(id, done.toFloat() / total)
+            val parts = Catalogue.parts(img)
+            val final = repo.finalFile(id)
+            if (parts.isEmpty()) {
+                val total = img.sizeBytes
+                fetchAny(repo, Catalogue.urls(img), repo.partFile(id)) { done -> if (total > 0) repo.setProgress(id, done.toFloat() / total) }
+                    ?: return@withContext Result.failure()
+                if (!repo.partFile(id).renameTo(final)) throw IOException("rename failed")
+            } else {
+                // Split file (> 2 GB on GitHub): fetch each part, check it, then join in order.
+                val total = parts.sumOf { it.size }.coerceAtLeast(1)
+                var before = 0L
+                parts.forEachIndexed { n, p ->
+                    val f = repo.partFile(id, n)
+                    if (!(p.size > 0 && f.length() == p.size && (p.sha256 == null || sha256(f).equals(p.sha256, true)))) {
+                        fetchAny(repo, listOf(p.url), f) { done -> repo.setProgress(id, (before + done).toFloat() / total) }
+                            ?: return@withContext Result.failure()
+                        if (p.sha256 != null && !sha256(f).equals(p.sha256, true)) { f.delete(); throw IOException("part $n checksum mismatch") }
                     }
+                    before += f.length()
                 }
+                FileOutputStream(final).use { out -> parts.indices.forEach { n -> repo.partFile(id, n).inputStream().use { it.copyTo(out) } } }
+                parts.indices.forEach { repo.partFile(id, it).delete() }
             }
             img.sha256?.let { want ->
-                val got = sha256(part)
-                if (!got.equals(want, ignoreCase = true)) {
-                    part.delete()
-                    throw IOException("checksum mismatch")
-                }
+                if (!sha256(final).equals(want, ignoreCase = true)) { final.delete(); throw IOException("checksum mismatch") }
             }
-            val final = repo.finalFile(id)
-            if (!part.renameTo(final)) throw IOException("rename failed")
             dao.updateImage(img.copy(status = "ready", localPath = final.absolutePath, updatedAt = System.currentTimeMillis()))
             Result.success()
         } catch (e: IOException) {
@@ -131,6 +158,43 @@ class DownloadWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(c
                 dao.image(id)?.takeIf { it.status == "downloading" }?.let { dao.updateImage(it.copy(status = "remote")) }
             }
         }
+    }
+
+    /** Tries each URL in order, resuming into [into]. Returns null when stopped. */
+    private fun fetchAny(repo: ImageRepo, urls: List<String>, into: File, progress: (Long) -> Unit): Unit? {
+        var last: IOException? = null
+        for (url in urls) {
+            try {
+                return fetch(repo, url, into, progress)
+            } catch (e: IOException) {
+                last = e
+            }
+        }
+        throw last ?: IOException("no download URL")
+    }
+
+    private fun fetch(repo: ImageRepo, url: String, into: File, progress: (Long) -> Unit): Unit? {
+        val have = if (into.exists()) into.length() else 0L
+        val req = Request.Builder().url(url).apply { if (have > 0) header("Range", "bytes=$have-") }.build()
+        repo.http.newCall(req).execute().use { resp ->
+            if (resp.code == 416) return Unit // already complete
+            if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}")
+            val append = resp.code == 206
+            var done = if (append) have else 0L
+            FileOutputStream(into, append).use { out ->
+                val buf = ByteArray(64 * 1024)
+                val input = resp.body!!.byteStream()
+                while (true) {
+                    if (isStopped) return null
+                    val n = input.read(buf)
+                    if (n < 0) break
+                    out.write(buf, 0, n)
+                    done += n
+                    progress(done)
+                }
+            }
+        }
+        return Unit
     }
 
     private fun sha256(f: File): String {

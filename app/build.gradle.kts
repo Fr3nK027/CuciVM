@@ -37,6 +37,8 @@ android {
         checkReleaseBuilds = false
     }
     androidResources { noCompress += "bin" }
+    // catalog/catalog.json ships inside the APK as the offline fallback of the GitHub copy.
+    sourceSets["main"].assets.srcDirs("src/main/assets", "../catalog")
 }
 
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }
@@ -65,4 +67,5 @@ dependencies {
     implementation("org.tukaani:xz:1.10")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303") // real org.json for JVM tests (android.jar has stubs)
 }

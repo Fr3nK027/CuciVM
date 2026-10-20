@@ -52,6 +52,7 @@ import com.cuvm.R
 import com.cuvm.CuciVm
 import com.cuvm.data.GuestImage
 import com.cuvm.ui.common.DetailScaffold
+import com.cuvm.ui.common.OsLogo
 import com.cuvm.ui.common.TextDialog
 import kotlinx.coroutines.launch
 
@@ -174,7 +175,7 @@ private fun ImageItem(img: GuestImage, progress: Float?, selected: Boolean, onSe
         modifier = Modifier.fillMaxWidth().selectable(selected, enabled = ready, role = Role.RadioButton, onClick = onSelect),
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.Terminal, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.primary)
+            OsLogo(img.logoUrl, img.os, 40.dp)
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
                 Text(img.name, style = MaterialTheme.typography.titleMedium)

@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "about": "CuciVM system catalogue. The app reads this file from GitHub and falls back to the copy built into the APK. Files over 2 GB: list them in 'parts' (each under 2 GB, joined in order) or point 'url' at an official mirror. Logos are links to their official/Commons sources, not copies.",
+  "images": [
+    {
+      "id": "android-8.1-twoyi",
+      "os": "android",
+      "name": "Android 8.1",
+      "version": "Twoyi 0.5.4",
+      "arch": "arm64",
+      "engine": "android_container",
+      "url": "https://github.com/twoyi/twoyi/releases/download/0.5.4/twoyi_0.5.4-03211927-release.apk",
+      "sha256": "ca5e25b3d1852c3b9df8f776f5798269de3c3c40fbf4b92c3768f483ee1a71b5",
+      "size": 209364444,
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Android_robot.svg/250px-Android_robot.svg.png"
+    },
+    {
+      "id": "alpine-openbox",
+      "os": "linux",
+      "name": "Alpine Linux · Openbox",
+      "version": "3.24.2",
+      "arch": "arm64",
+      "engine": "proot",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.2-aarch64.tar.gz",
+      "mirrors": ["https://mirrors.edge.kernel.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.2-aarch64.tar.gz"],
+      "sha256": "9bf70a7f18ea44094cbb5f70c58f9af129c8214745743db0e68e5502cc2ce773",
+      "size": 4028030,
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Alpine_Linux.svg/250px-Alpine_Linux.svg.png",
+      "setup": "apk update && apk add tigervnc openbox xterm font-dejavu tzdata",
+      "session": "xterm -geometry 80x24+8+8 & exec openbox"
+    },
+    {
+      "id": "alpine-xfce",
+      "os": "linux",
+      "name": "Alpine Linux · XFCE",
+      "version": "3.24.2",
+      "arch": "arm64",
+      "engine": "proot",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.2-aarch64.tar.gz",
+      "mirrors": ["https://mirrors.edge.kernel.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.2-aarch64.tar.gz"],
+      "sha256": "9bf70a7f18ea44094cbb5f70c58f9af129c8214745743db0e68e5502cc2ce773",
+      "size": 4028030,
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Xfce_logo.svg/250px-Xfce_logo.svg.png",
+      "setup": "apk update && apk add tigervnc xfce4 xfce4-terminal dbus-x11 font-dejavu adwaita-icon-theme tzdata",
+      "session": "exec dbus-launch --exit-with-session startxfce4"
+    },
+    {
+      "id": "ubuntu-24.04-xfce",
+      "os": "linux",
+      "name": "Ubuntu 24.04 · XFCE",
+      "version": "24.04.5",
+      "arch": "arm64",
+      "engine": "proot",
+      "url": "https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.5-base-arm64.tar.gz",
+      "sha256": "a91d5a93010193712d346d761372b7c9db6dfcf093893161c64ca107f05914f2",
+      "size": 29936675,
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Logo-ubuntu_cof-orange-hex.svg/250px-Logo-ubuntu_cof-orange-hex.svg.png",
+      "setup": "export DEBIAN_FRONTEND=noninteractive && apt-get -o APT::Sandbox::User=root update && apt-get -o APT::Sandbox::User=root install -y --no-install-recommends tigervnc-standalone-server xfce4 xfce4-terminal dbus-x11 fonts-dejavu-core tzdata",
+      "session": "exec dbus-launch --exit-with-session startxfce4"
+    }
+  ],
+  "logos": {
+    "linux": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Tux.svg/250px-Tux.svg.png",
+    "windows": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Windows_logo_-_2021.svg/250px-Windows_logo_-_2021.svg.png",
+    "android": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Android_robot.svg/250px-Android_robot.svg.png",
+    "debian": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Debian-OpenLogo.svg/250px-Debian-OpenLogo.svg.png",
+    "arch": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Arch_Linux_%22Crystal%22_icon.svg/250px-Arch_Linux_%22Crystal%22_icon.svg.png"
+  }
+}

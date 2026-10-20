@@ -51,10 +51,10 @@ class ProotEngine(private val context: Context) : GuestEngine {
             File(root, "etc/hosts").writeText("127.0.0.1 localhost\n::1 localhost\n")
             File(root, ".vmbox-extracted").createNewFile()
         }
-        val setup = Catalogue.profile(image.id).setup
+        val setup = Catalogue.profile(image).setup
         if (setup.isNotEmpty() && !File(root, ".vmbox-setup").exists()) {
             log("setup")
-            val p = guest(vm, "$setup && apk add tzdata")
+            val p = guest(vm, setup)
                 .redirectErrorStream(true).start()
             p.inputStream.bufferedReader().useLines { lines -> lines.forEach { log("setup: $it") } }
             if (p.waitFor() != 0) throw IOException("setup failed (network?)")
@@ -64,10 +64,10 @@ class ProotEngine(private val context: Context) : GuestEngine {
 
     override fun start(vm: Vm, image: GuestImage, display: Int): Process {
         val port = 5900 + display
-        val session = Catalogue.profile(image.id).session
+        val session = Catalogue.profile(image).session
         val script = """
             rm -f /tmp/.X$display-lock /tmp/.X11-unix/X$display
-            Xvnc :$display -geometry ${vm.width}x${vm.height} -dpi ${vm.dpi} -depth 24 -SecurityTypes None -localhost -rfbport $port -AlwaysShared &
+            "$(command -v Xvnc || command -v Xtigervnc)" :$display -geometry ${vm.width}x${vm.height} -dpi ${vm.dpi} -depth 24 -SecurityTypes None -localhost -rfbport $port -AlwaysShared &
             i=0; while [ ! -e /tmp/.X11-unix/X$display ] && [ ${'$'}i -lt 40 ]; do sleep 0.25; i=${'$'}((i+1)); done
             export DISPLAY=:$display
             $session

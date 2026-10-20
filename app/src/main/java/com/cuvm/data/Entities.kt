@@ -23,6 +23,11 @@ data class GuestImage(
     val status: String,          // remote | downloading | ready | failed
     val createdAt: Long,
     val updatedAt: Long,
+    val logoUrl: String? = null,
+    val mirrors: String? = null, // JSON array of extra URLs for the same file, tried in order
+    val parts: String? = null,   // JSON array of {url,size,sha256}: file split under 2 GB, joined after download
+    val setup: String? = null,   // proot: first-boot shell, overrides the built-in profile
+    val session: String? = null, // proot: desktop start shell
 )
 
 @Entity(

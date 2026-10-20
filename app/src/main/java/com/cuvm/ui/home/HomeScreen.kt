@@ -69,7 +69,10 @@ import com.cuvm.data.AppPrefs
 import com.cuvm.data.Vm
 import com.cuvm.engine.VmState
 import com.cuvm.engine.active
+import androidx.compose.runtime.produceState
+import com.cuvm.data.GuestImage
 import com.cuvm.ui.common.ConfirmDialog
+import com.cuvm.ui.common.OsLogo
 import com.cuvm.ui.common.PrefRow
 import com.cuvm.ui.profile.ProfileTab
 import kotlinx.coroutines.launch
@@ -173,6 +176,8 @@ fun VmCard(vm: Vm, state: VmState, compact: Boolean, onOpen: (String) -> Unit, o
     var confirmStop by remember { mutableStateOf(false) }
     OutlinedCard(modifier, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
         Column(Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            val image by produceState<GuestImage?>(null, vm.imageId) { value = CuciVm.vms.image(vm.imageId) }
+            OsLogo(image?.logoUrl, image?.os ?: "linux", if (compact) 32.dp else 48.dp, Modifier.padding(bottom = 8.dp))
             Text(
                 vm.name, style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
                 maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,

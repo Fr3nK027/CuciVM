@@ -1,45 +1,52 @@
 package com.cuvm.data
 
-/** What the guest runs on first boot (setup) and on every boot (session). Shell, inside the guest. */
+import org.json.JSONArray
+import org.json.JSONObject
+
+/** What a proot guest runs on first boot (setup) and on every boot (session). Shell, inside the guest. */
 data class Profile(val setup: String, val session: String)
 
+data class Part(val url: String, val size: Long, val sha256: String?)
+
+/**
+ * The system list lives in catalog/catalog.json: built into the APK (assets) and refreshed from GitHub.
+ * Same file, same parser, so the offline copy and the online one never drift apart.
+ */
 object Catalogue {
-    private const val ALPINE_URL =
-        "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.2-aarch64.tar.gz"
-    private const val ALPINE_SHA = "9bf70a7f18ea44094cbb5f70c58f9af129c8214745743db0e68e5502cc2ce773"
-    private const val ALPINE_SIZE = 4_028_030L
+    const val REMOTE_URL = "https://raw.githubusercontent.com/Fr3nK027/CuciVM/main/catalog/catalog.json"
 
-    private fun alpine(id: String, name: String) = GuestImage(
-        id = id, os = "linux", name = name, versionLabel = "3.24.2", arch = "arm64", engine = "proot",
-        source = "catalogue", downloadUrl = ALPINE_URL, sha256 = ALPINE_SHA, sizeBytes = ALPINE_SIZE,
-        localPath = null, status = "remote", createdAt = 0, updatedAt = 0,
-    )
+    class Parsed(val images: List<GuestImage>, val osLogos: Map<String, String>)
 
-    // Android 8.1 container ROM from the Twoyi project (MPL-2.0), official GitHub release.
-    private val android81 = GuestImage(
-        id = "android-8.1-twoyi", os = "android", name = "Android 8.1", versionLabel = "Twoyi 0.5.4",
-        arch = "arm64", engine = "android_container", source = "catalogue",
-        downloadUrl = "https://github.com/twoyi/twoyi/releases/download/0.5.4/twoyi_0.5.4-03211927-release.apk",
-        sha256 = "ca5e25b3d1852c3b9df8f776f5798269de3c3c40fbf4b92c3768f483ee1a71b5", sizeBytes = 209_364_444L,
-        localPath = null, status = "remote", createdAt = 0, updatedAt = 0,
-    )
+    fun parse(json: String, now: Long): Parsed {
+        val root = JSONObject(json)
+        require(root.optInt("version") == 1) { "unsupported catalogue version" }
+        val list = root.getJSONArray("images")
+        val images = (0 until list.length()).map { i ->
+            val o = list.getJSONObject(i)
+            GuestImage(
+                id = o.getString("id"), os = o.getString("os"), name = o.getString("name"),
+                versionLabel = o.optString("version"), arch = o.optString("arch", "arm64"),
+                engine = o.getString("engine"), source = "catalogue",
+                downloadUrl = o.optStringOrNull("url"), sha256 = o.optStringOrNull("sha256"),
+                sizeBytes = o.optLong("size"), localPath = null, status = "remote",
+                createdAt = now, updatedAt = now,
+                logoUrl = o.optStringOrNull("logo"),
+                mirrors = o.optJSONArray("mirrors")?.toString(),
+                parts = o.optJSONArray("parts")?.toString(),
+                setup = o.optStringOrNull("setup"), session = o.optStringOrNull("session"),
+            )
+        }
+        val logos = root.optJSONObject("logos")?.let { l -> l.keys().asSequence().associateWith { l.getString(it) } } ?: emptyMap()
+        return Parsed(images, logos)
+    }
 
-    val images = listOf(
-        android81,
-        alpine("alpine-openbox", "Alpine Linux · Openbox"),
-        alpine("alpine-xfce", "Alpine Linux · XFCE"),
-    )
+    fun parts(image: GuestImage): List<Part> = image.parts?.let { s ->
+        val a = JSONArray(s)
+        (0 until a.length()).map { a.getJSONObject(it).let { p -> Part(p.getString("url"), p.optLong("size"), p.optStringOrNull("sha256")) } }
+    } ?: emptyList()
 
-    private val profiles = mapOf(
-        "alpine-openbox" to Profile(
-            setup = "apk update && apk add tigervnc openbox xterm font-dejavu",
-            session = "xterm -geometry 80x24+8+8 & exec openbox",
-        ),
-        "alpine-xfce" to Profile(
-            setup = "apk update && apk add tigervnc xfce4 xfce4-terminal dbus-x11 font-dejavu adwaita-icon-theme",
-            session = "exec dbus-launch --exit-with-session startxfce4",
-        ),
-    )
+    fun urls(image: GuestImage): List<String> =
+        listOfNotNull(image.downloadUrl) + (image.mirrors?.let { s -> JSONArray(s).let { a -> (0 until a.length()).map(a::getString) } } ?: emptyList())
 
     // Custom rootfs: must already contain Xvnc; start the first desktop it has.
     private val custom = Profile(
@@ -47,5 +54,7 @@ object Catalogue {
         session = "for s in startxfce4 openbox-session openbox xterm; do command -v \$s >/dev/null && exec \$s; done",
     )
 
-    fun profile(imageId: String) = profiles[imageId] ?: custom
+    fun profile(image: GuestImage) = Profile(image.setup ?: custom.setup, image.session ?: custom.session)
+
+    private fun JSONObject.optStringOrNull(k: String) = if (has(k) && !isNull(k)) getString(k) else null
 }

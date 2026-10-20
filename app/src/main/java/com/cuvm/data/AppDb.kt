@@ -11,6 +11,8 @@ import androidx.room.RoomDatabase
 import androidx.room.Transaction
 import androidx.room.Update
 import androidx.room.Upsert
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -98,12 +100,21 @@ interface VmDao {
 
 @Database(
     entities = [GuestImage::class, Vm::class, VmIdentity::class, VmNetwork::class, VmSensor::class, VmLocation::class],
-    version = 1,
+    version = 2,
 )
 abstract class AppDb : RoomDatabase() {
     abstract fun dao(): VmDao
 
     companion object {
-        fun build(context: Context) = Room.databaseBuilder(context, AppDb::class.java, "cucivm.db").build()
+        private val V1_V2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                listOf("logoUrl", "mirrors", "parts", "setup", "session").forEach {
+                    db.execSQL("alter table guest_image add column $it text")
+                }
+            }
+        }
+
+        fun build(context: Context) = Room.databaseBuilder(context, AppDb::class.java, "cucivm.db")
+            .addMigrations(V1_V2).build()
     }
 }
