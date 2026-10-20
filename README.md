@@ -5,10 +5,13 @@ Virtual machines inside an Android app, no root. Personal project.
 - **Android spaces**: isolated spaces where apps from the phone (or APK files) run as separate
   copies, each with its own accounts and data, at native speed. Engine: NewBlackbox (Apache-2.0),
   built into the app, in `blackbox/`. Its crash-log upload to a third-party server is removed.
-- **Linux guests**: Alpine and Ubuntu root filesystems from their official mirrors, run under PRoot,
-  desktop shown through TigerVNC's Xvnc and CuciVM's own VNC client.
-- **Windows / other OS**: planned (Box64 + Wine for Windows programs, QEMU for full systems; full
-  systems are emulated, so they are slow: Android does not give apps hardware virtualisation).
+- **Linux desktops**: Alpine, Debian 13 (XFCE + Firefox), Ubuntu 24.04 from official mirrors, run under
+  PRoot at native arm64 speed, shown through TigerVNC's Xvnc and CuciVM's own VNC client. Laptop-style
+  resolutions (landscape 720p/900p/1080p), mouse/touchpad buttons and wheel, hardware keyboard shortcuts,
+  guest sound (PulseAudio), clipboard, shared Download folder, picture-in-picture, backup/restore.
+- **Windows programs**: Wine 10.12 + Box64 0.4.5 on a Debian desktop (Notepad, Explorer, .exe files).
+- **Full PCs (slow)**: ReactOS, or Windows from your own ISO, emulated by QEMU. Android does not give
+  apps hardware virtualisation, so these run on CPU emulation.
 - **macOS**: not supported. Apple's licence only allows macOS on Apple hardware.
 
 ## Catalogue
@@ -24,8 +27,11 @@ the property of their owners.
 
 ## Build
 
-JDK 17 and the Android SDK (platform 35). `./gradlew assembleDebug`. Sideload only: `targetSdk` is 28
-so guest binaries can run from app storage.
+JDK 17, Android SDK (platform 35) and NDK 29.0.13846066 (for the app-space engine). `./gradlew assembleDebug`.
+Sideload only: `targetSdk` is 25, so guest binaries can run from app storage and Wine keeps the SELinux
+`execmod` permission it needs.
+
+Debug builds include `DebugReceiver` (adb-driven VM control for automated tests); release builds do not.
 
 ## Third-party code in this repository
 
