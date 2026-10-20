@@ -10,6 +10,7 @@ import java.io.IOException
 import java.net.Socket
 import java.nio.ByteBuffer
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 
 /**
  * Minimal RFB 3.8 client (RFC 6143): security None, encodings Raw, CopyRect, DesktopSize.
@@ -28,11 +29,15 @@ class RfbClient(
     private lateinit var output: DataOutputStream
     private val writer = Executors.newSingleThreadExecutor()
     @Volatile private var closed = false
+    /** Input events are only sent once the handshake is done (before that the size is 0 and the stream is mid-handshake). */
+    @Volatile private var ready = false
 
     var width = 0; private set
     var height = 0; private set
     private var fb = ByteArray(0) // RGBX rows, the exact memory layout of an opaque ARGB_8888 Bitmap
-    private var bitmap: Bitmap? = null
+    // Double buffer: the UI draws one bitmap while the next frame is copied into the other.
+    private val bitmaps = arrayOfNulls<Bitmap>(2)
+    private var back = 0
 
     fun connect() {
         Thread({
@@ -41,7 +46,8 @@ class RfbClient(
                 socket.connect(java.net.InetSocketAddress(host, port), 5000)
                 input = DataInputStream(BufferedInputStream(socket.getInputStream(), 1 shl 16))
                 output = DataOutputStream(BufferedOutputStream(socket.getOutputStream()))
-                handshake()
+                synchronized(this) { handshake() }
+                ready = true
                 loop()
             } catch (e: Throwable) {
                 if (!closed) onClosed(e)
@@ -82,10 +88,11 @@ class RfbClient(
     private fun readString(): String = ByteArray(input.readInt()).also { input.readFully(it) }.toString(Charsets.ISO_8859_1)
 
     private fun resize(w: Int, h: Int) {
+        if (w !in 1..8192 || h !in 1..8192) throw IOException("bad desktop size ${w}x$h")
         width = w; height = h
         fb = ByteArray(w * h * 4)
         // X byte is 0: mark opaque so it is never treated as transparency.
-        bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).apply { setHasAlpha(false) }
+        for (i in bitmaps.indices) bitmaps[i] = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).apply { setHasAlpha(false) }
     }
 
     private fun requestUpdate(incremental: Boolean) {
@@ -106,7 +113,10 @@ class RfbClient(
                     repeat(input.readUnsignedShort()) {
                         val x = input.readUnsignedShort(); val y = input.readUnsignedShort()
                         val w = input.readUnsignedShort(); val h = input.readUnsignedShort()
-                        when (val enc = input.readInt()) {
+                        val enc = input.readInt()
+                        // A rect outside the framebuffer would crash or wrap into the next row.
+                        if (enc != -223 && (x + w > width || y + h > height)) throw IOException("rect ${w}x$h+$x+$y outside ${width}x$height")
+                        when (enc) {
                             0 -> {
                                 val len = w * 4
                                 if (x == 0 && w == width) input.readFully(fb, y * len, h * len) // full-width: one read
@@ -114,6 +124,7 @@ class RfbClient(
                             }
                             1 -> {
                                 val sx = input.readUnsignedShort(); val sy = input.readUnsignedShort()
+                                if (sx + w > width || sy + h > height) throw IOException("copyrect source outside framebuffer")
                                 val len = w * 4
                                 val tmp = ByteArray(len * h)
                                 for (row in 0 until h) System.arraycopy(fb, ((sy + row) * width + sx) * 4, tmp, row * len, len)
@@ -123,9 +134,10 @@ class RfbClient(
                             else -> throw IOException("unexpected encoding $enc")
                         }
                     }
-                    val bmp = bitmap!!
+                    val bmp = bitmaps[back]!!
                     bmp.copyPixelsFromBuffer(ByteBuffer.wrap(fb))
                     onFrame(bmp)
+                    back = 1 - back
                     if (BuildConfig.DEBUG) stats(System.currentTimeMillis() - started)
                 }
                 1 -> { input.readByte(); input.readUnsignedShort(); input.skipBytes(input.readUnsignedShort() * 6) }
@@ -148,9 +160,13 @@ class RfbClient(
     }
 
     private fun send(block: DataOutputStream.() -> Unit) {
-        if (closed) return
-        writer.execute {
-            try { synchronized(this) { output.block(); output.flush() } } catch (_: IOException) { }
+        if (closed || !ready) return
+        try {
+            writer.execute {
+                try { synchronized(this) { output.block(); output.flush() } } catch (_: Exception) { }
+            }
+        } catch (_: RejectedExecutionException) {
+            // closing at the same moment: the event is moot
         }
     }
 

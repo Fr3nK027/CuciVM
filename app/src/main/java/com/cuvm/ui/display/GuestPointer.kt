@@ -54,7 +54,9 @@ suspend fun PointerInputScope.guestPointer(fb: (Offset) -> Pair<Int, Int>, send:
             val pressed = e.changes.count { it.pressed }
             when {
                 pressed >= 2 -> {
-                    // Two-finger vertical swipe scrolls the guest.
+                    // Two-finger vertical swipe scrolls the guest. A drag in progress is released first,
+                    // or the guest would keep the left button held.
+                    if (dragging) { send(x, y, 0); dragging = false }
                     twoFinger = true
                     scrollAcc += e.changes.map { it.position.y - it.previousPosition.y }.average().toFloat()
                     if (abs(scrollAcc) > 24f) { val w = if (scrollAcc > 0) WHEEL_UP else WHEEL_DOWN; send(x, y, w); send(x, y, 0); scrollAcc = 0f }

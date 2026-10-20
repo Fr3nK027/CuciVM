@@ -30,6 +30,18 @@ class DebugReceiver : BroadcastReceiver() {
                     "STOP" -> vm?.let { CuciVm.runtime.stop(it.id); log("stop ${it.name}") }
                     "REPAIR" -> vm?.let { CuciVm.vms.repair(it); log("repair ${it.name}") }
                     "RESET" -> vm?.let { CuciVm.vms.reset(it); log("reset ${it.name}") }
+                    // App spaces: --es name <vm> --es pkg <package>
+                    "IMPORT", "LAUNCH", "APPS" -> {
+                        val v = vm ?: return@launch log("no VM")
+                        val user = CuciVm.vms.spaceUser(v)
+                        CuciVm.space.ensureUser(user)
+                        val pkg = intent.getStringExtra("pkg") ?: ""
+                        when (intent.action?.substringAfterLast('.')) {
+                            "IMPORT" -> log("import $pkg: ${CuciVm.space.importInstalled(pkg, user)}")
+                            "LAUNCH" -> log("launch $pkg: ${CuciVm.space.launch(pkg, user, CuciVm.vms.locationNow(v.id))}")
+                            else -> CuciVm.space.apps(user).forEach { log("app ${it.packageName}") }
+                        }
+                    }
                     // -es image <catalogue id>
                     "DOWNLOAD" -> intent.getStringExtra("image")?.let { CuciVm.images.download(it); log("download $it") }
                     "IMAGES" -> CuciVm.images.images.first().forEach { log("${it.id} | ${it.status} | ${it.engine}") }

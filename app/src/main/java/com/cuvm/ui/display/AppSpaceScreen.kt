@@ -86,7 +86,8 @@ fun AppSpaceScreen(vm: Vm, onToPhone: () -> Unit, onSettings: () -> Unit) {
     var refresh by remember { mutableIntStateOf(0) }
     var removing by remember { mutableStateOf<ApplicationInfo?>(null) }
     val user by produceState<Int?>(null, vm.id) { value = CuciVm.vms.spaceUser(vm) }
-    LaunchedEffect(state) { if (state is VmState.Stopped || state is VmState.Error) CuciVm.runtime.start(vm.id) }
+    // Auto-start only from Stopped: a failing start must not loop.
+    LaunchedEffect(state) { if (state is VmState.Stopped) CuciVm.runtime.start(vm.id) }
     val apps by produceState<List<ApplicationInfo>?>(null, user, refresh, state) {
         val u = user ?: return@produceState
         if (state !is VmState.Running) return@produceState
@@ -118,7 +119,11 @@ fun AppSpaceScreen(vm: Vm, onToPhone: () -> Unit, onSettings: () -> Unit) {
         Box(Modifier.padding(pad).fillMaxSize()) {
             val list = apps
             when {
-                state is VmState.Error -> Text(stringResource(R.string.state_error, (state as VmState.Error).message), color = MaterialTheme.colorScheme.error, modifier = Modifier.align(Alignment.Center).padding(32.dp))
+                state is VmState.Error -> Column(Modifier.align(Alignment.Center).padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(stringResource(R.string.state_error, (state as VmState.Error).message), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+                    Spacer(Modifier.heightIn(min = 16.dp))
+                    OutlinedButton(onClick = { CuciVm.runtime.start(vm.id) }) { Text(stringResource(R.string.retry)) }
+                }
                 list == null -> CircularProgressIndicator(Modifier.align(Alignment.Center))
                 list.isEmpty() -> Column(Modifier.align(Alignment.Center).padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(stringResource(R.string.space_empty_title), style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)

@@ -62,7 +62,10 @@ class ImageRepo(private val context: Context, private val dao: VmDao) {
         _osLogos.value = parsed.osLogos
         // Systems dropped from the catalogue disappear unless a VM still uses them.
         val ids = parsed.images.map { it.id }.toSet()
-        dao.catalogueImages().filter { it.id !in ids && dao.vmCountForImage(it.id) == 0 }.forEach { dao.deleteImage(it.id) }
+        // Downloaded or downloading ones stay (their file is on disk and may be shared).
+        dao.catalogueImages()
+            .filter { it.id !in ids && it.status !in setOf("ready", "downloading") && dao.vmCountForImage(it.id) == 0 }
+            .forEach { dao.deleteImage(it.id) }
         for (img in parsed.images) {
             val old = dao.image(img.id)
             when {
@@ -70,7 +73,8 @@ class ImageRepo(private val context: Context, private val dao: VmDao) {
                 // Same file: refresh metadata, keep download state.
                 old.sha256 == img.sha256 -> dao.updateImage(img.copy(localPath = old.localPath, status = old.status, createdAt = old.createdAt))
                 // New version of the file: download again (existing VMs keep their extracted system).
-                else -> dao.updateImage(img.copy(createdAt = old.createdAt))
+                // Stale partial files belong to the old version.
+                else -> { partFiles(img.id).forEach { it.delete() }; dao.updateImage(img.copy(createdAt = old.createdAt)) }
             }
         }
     }
@@ -92,7 +96,9 @@ class ImageRepo(private val context: Context, private val dao: VmDao) {
         _progress.update { if (p == null) it - id else it + (id to p) }
 
     internal fun partFile(id: String, n: Int = 0) = File(dir, "$id.part$n")
-    internal fun finalFile(id: String) = File(dir, "$id.img")
+    private fun partFiles(id: String) = dir.listFiles { f -> f.name.startsWith("$id.part") }?.toList() ?: emptyList()
+    /** One file per version (sha in the name): a new version never overwrites a file a twin image points at. */
+    internal fun finalFile(id: String, sha: String? = null) = File(dir, if (sha == null) "$id.img" else "$id-${sha.take(16)}.img")
 
     /** Copies a user-picked rootfs tarball into app storage. */
     suspend fun importCustom(uri: Uri, displayName: String): GuestImage = withContext(Dispatchers.IO) {
@@ -124,10 +130,10 @@ class DownloadWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(c
         dao.updateImage(img.copy(status = "downloading", updatedAt = System.currentTimeMillis()))
         try {
             val parts = Catalogue.parts(img)
-            val final = repo.finalFile(id)
+            val final = repo.finalFile(id, img.sha256)
             if (parts.isEmpty()) {
                 val total = img.sizeBytes
-                fetchAny(repo, Catalogue.urls(img), repo.partFile(id)) { done -> if (total > 0) repo.setProgress(id, done.toFloat() / total) }
+                fetchAny(repo, Catalogue.urls(img), repo.partFile(id), total) { done -> if (total > 0) repo.setProgress(id, done.toFloat() / total) }
                     ?: return@withContext Result.failure()
                 if (!repo.partFile(id).renameTo(final)) throw IOException("rename failed")
             } else {
@@ -137,7 +143,7 @@ class DownloadWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(c
                 parts.forEachIndexed { n, p ->
                     val f = repo.partFile(id, n)
                     if (!(p.size > 0 && f.length() == p.size && (p.sha256 == null || sha256(f).equals(p.sha256, true)))) {
-                        fetchAny(repo, listOf(p.url), f) { done -> repo.setProgress(id, (before + done).toFloat() / total) }
+                        fetchAny(repo, listOf(p.url), f, p.size) { done -> repo.setProgress(id, (before + done).toFloat() / total) }
                             ?: return@withContext Result.failure()
                         if (p.sha256 != null && !sha256(f).equals(p.sha256, true)) { f.delete(); throw IOException("part $n checksum mismatch") }
                     }
@@ -164,11 +170,11 @@ class DownloadWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(c
     }
 
     /** Tries each URL in order, resuming into [into]. Returns null when stopped. */
-    private fun fetchAny(repo: ImageRepo, urls: List<String>, into: File, progress: (Long) -> Unit): Unit? {
+    private fun fetchAny(repo: ImageRepo, urls: List<String>, into: File, expected: Long, progress: (Long) -> Unit): Unit? {
         var last: IOException? = null
         for (url in urls) {
             try {
-                return fetch(repo, url, into, progress)
+                return fetch(repo, url, into, expected, progress)
             } catch (e: IOException) {
                 last = e
             }
@@ -176,11 +182,15 @@ class DownloadWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(c
         throw last ?: IOException("no download URL")
     }
 
-    private fun fetch(repo: ImageRepo, url: String, into: File, progress: (Long) -> Unit): Unit? {
+    private fun fetch(repo: ImageRepo, url: String, into: File, expected: Long, progress: (Long) -> Unit): Unit? {
         val have = if (into.exists()) into.length() else 0L
         val req = Request.Builder().url(url).apply { if (have > 0) header("Range", "bytes=$have-") }.build()
         repo.http.newCall(req).execute().use { resp ->
-            if (resp.code == 416) return Unit // already complete
+            // 416: nothing left to send. Only trust it when the size matches, else start over.
+            if (resp.code == 416) {
+                if (expected <= 0 || into.length() == expected) return Unit
+                into.delete(); throw IOException("stale partial file")
+            }
             if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}")
             val append = resp.code == 206
             var done = if (append) have else 0L

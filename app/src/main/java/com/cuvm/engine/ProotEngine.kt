@@ -5,7 +5,9 @@ import com.cuvm.data.Catalogue
 import com.cuvm.data.GuestImage
 import com.cuvm.data.Vm
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.coroutineContext
 import java.io.File
 import java.io.IOException
 import org.tukaani.xz.XZInputStream
@@ -18,6 +20,13 @@ interface GuestEngine {
 
 /** Linux userland under proot. Display: TigerVNC's Xvnc on 127.0.0.1:(5900 + display). */
 class ProotEngine(private val context: Context) : GuestEngine {
+    /** Extract/setup process per VM, so a Stop during first boot can end it. */
+    private val running = java.util.concurrent.ConcurrentHashMap<String, Process>()
+
+    fun cancelSetup(vmId: String) { running.remove(vmId)?.destroy() }
+
+    private fun track(vmId: String, p: Process): Process = p.also { running[vmId] = it }
+
     private val engineDir get() = File(context.filesDir, "engine")
 
     /** Copies proot + loader + libs out of assets. Write-then-rename so a running proot is never truncated. */
@@ -39,6 +48,15 @@ class ProotEngine(private val context: Context) : GuestEngine {
 
     private fun rootfs(vm: Vm) = File(vm.dataPath, "rootfs")
 
+
+    /** Name of the first entry of a (plain or gzip) tar, for detecting a wrapping folder. */
+    private fun firstEntry(f: File, flag: String): String? = runCatching {
+        val raw = f.inputStream().buffered()
+        val input = if (flag == "z") java.util.zip.GZIPInputStream(raw) else raw
+        input.use { val h = ByteArray(100); var n = 0; while (n < 100) { val r = it.read(h, n, 100 - n); if (r < 0) break; n += r }
+            String(h, 0, h.indexOf(0).let { z -> if (z < 0) n else z }, Charsets.UTF_8) }
+    }.getOrNull()
+
     /** toybox tar flag from the file's magic bytes (downloads are stored without extension). */
     private fun compression(f: File): String {
         val m = ByteArray(6).also { b -> f.inputStream().use { it.read(b) } }
@@ -55,28 +73,37 @@ class ProotEngine(private val context: Context) : GuestEngine {
         if (!File(root, ".vmbox-extracted").exists()) {
             val tar = image.localPath ?: throw IOException("image not downloaded")
             log("extract")
-            val tmp = File(vm.dataPath, "rootfs.tmp")
-            root.deleteRecursively(); tmp.deleteRecursively(); tmp.mkdirs()
+            root.deleteTree(); root.mkdirs()
             // toybox tar has no xz of its own: unpack .xz here first.
             var input = File(tar)
             var flag = compression(input)
-            if (flag == "J") {
-                val plain = File(vm.dataPath, "rootfs.tar")
-                XZInputStream(input.inputStream().buffered(1 shl 16)).use { i -> plain.outputStream().use { i.copyTo(it, 1 shl 16) } }
-                input = plain; flag = ""
+            val plain = File(vm.dataPath, "rootfs.tar")
+            try {
+                if (flag == "J") {
+                    XZInputStream(input.inputStream().buffered(1 shl 16)).use { i -> plain.outputStream().use { i.copyTo(it, 1 shl 16) } }
+                    input = plain; flag = ""
+                }
+                // Some tarballs (proot-distro) wrap the system in one top-level folder: strip it.
+                val strip = if (wrappedInFolder(firstEntry(input, flag))) "1" else "0"
+                // Straight into the final folder, under proot --link2symlink: Android forbids hard links for
+                // apps, proot turns them into symlinks, and their targets must be final paths (no rename after).
+                val log = File(vm.dataPath, "extract.log")
+                val p = withProot(ProcessBuilder(
+                    File(engineDir, "proot").path, "--link2symlink", "-0",
+                    "/system/bin/tar", "x${flag}f", input.path, "--strip-components", strip, "-C", root.path,
+                ), File(vm.dataPath, "tmp").apply { mkdirs() })
+                    .redirectErrorStream(true).redirectOutput(log).start().let { track(vm.id, it) }
+                // Device nodes (dev/console...) cannot be created by an app; anything else is a real failure.
+                val code = p.waitFor()
+                running.remove(vm.id)
+                coroutineContext.ensureActive() // stopped meanwhile
+                if (code != 0) {
+                    val bad = log.readLines().filter { it.startsWith("tar:") && !it.contains("had errors") && !it.contains("dev/") }
+                    if (bad.isNotEmpty()) throw IOException("extract failed: ${bad.first()}")
+                }
+            } finally {
+                plain.delete()
             }
-            // Under proot with --link2symlink: Android forbids hard links for apps, proot turns them into symlinks.
-            val p = withProot(ProcessBuilder(
-                File(engineDir, "proot").path, "--link2symlink", "-0", "/system/bin/tar", "x${flag}f", input.path, "-C", tmp.path,
-            ), File(vm.dataPath, "tmp").apply { mkdirs() })
-                .redirectErrorStream(true).redirectOutput(File(vm.dataPath, "extract.log")).start()
-            p.waitFor() // device nodes (dev/console...) fail as non-root; checked below instead
-            if (input.path != tar) input.delete()
-            // Some tarballs (proot-distro) wrap the system in one top-level folder.
-            val only = tmp.listFiles()?.singleOrNull()
-            val top = if (only != null && only.isDirectory && !File(tmp, "usr").exists()) only else tmp
-            if (!top.renameTo(root)) throw IOException("extract failed")
-            tmp.deleteRecursively()
             if (!File(root, "bin/sh").exists()) throw IOException("extract failed (see extract.log)")
             // Often symlinks into /run: replace with plain files.
             File(root, "etc/resolv.conf").apply { delete(); writeText("nameserver 1.1.1.1\nnameserver 8.8.8.8\n") }
@@ -86,10 +113,12 @@ class ProotEngine(private val context: Context) : GuestEngine {
         val setup = Catalogue.profile(image).setup
         if (setup.isNotEmpty() && !File(root, ".vmbox-setup").exists()) {
             log("setup")
-            val p = guest(vm, setup)
-                .redirectErrorStream(true).start()
+            val p = track(vm.id, guest(vm, setup).redirectErrorStream(true).start())
             p.inputStream.bufferedReader().useLines { lines -> lines.forEach { log("setup: $it") } }
-            if (p.waitFor() != 0) throw IOException("setup failed (network?)")
+            val code = p.waitFor()
+            running.remove(vm.id)
+            coroutineContext.ensureActive() // stopped meanwhile
+            if (code != 0) throw IOException("setup failed (network?)")
             File(root, ".vmbox-setup").createNewFile()
         }
     }
@@ -137,4 +166,14 @@ class ProotEngine(private val context: Context) : GuestEngine {
         environment()["PROOT_LOADER"] = File(engineDir, "loader").path
         environment()["PROOT_TMP_DIR"] = tmp.path
     }
+}
+
+private val ROOT_DIRS = setOf("bin", "boot", "dev", "etc", "home", "lib", "lib64", "media", "mnt", "opt", "proc",
+    "root", "run", "sbin", "srv", "sys", "tmp", "usr", "var")
+
+/** First tar entry "debian-trixie-aarch64/bin" -> wrapped in a folder; "./bin", "bin/", "etc/x" -> not. */
+internal fun wrappedInFolder(first: String?): Boolean {
+    val path = first?.trimStart('/') ?: return false
+    val top = path.substringBefore('/')
+    return path.contains('/') && top.isNotEmpty() && top != "." && top !in ROOT_DIRS
 }

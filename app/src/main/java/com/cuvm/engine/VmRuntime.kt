@@ -4,7 +4,9 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import com.cuvm.data.VmRepo
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
@@ -38,6 +40,7 @@ class VmRuntime(
     private val _states = MutableStateFlow<Map<String, VmState>>(emptyMap())
     val states = _states.asStateFlow()
     private val procs = ConcurrentHashMap<String, Process>()
+    private val jobs = ConcurrentHashMap<String, Job>()
     private val displays = ConcurrentHashMap<String, Int>()
 
     fun state(id: String) = states.map { it[id] ?: VmState.Stopped }
@@ -55,7 +58,7 @@ class VmRuntime(
     fun start(id: String) {
         if (current(id).active) return
         set(id, VmState.Preparing("start"))
-        scope.launch {
+        jobs[id] = scope.launch {
             try {
                 val vm = repo.get(id) ?: return@launch set(id, VmState.Stopped)
                 val image = repo.image(vm.imageId) ?: error("image missing")
@@ -73,6 +76,7 @@ class VmRuntime(
                 procs[id] = proc
                 if (!waitForPort(port, proc)) {
                     proc.destroy()
+                    if (current(id) is VmState.Stopping) return@launch set(id, VmState.Stopped)
                     error("display did not start (see boot.log)")
                 }
                 set(id, VmState.Running(port))
@@ -81,17 +85,27 @@ class VmRuntime(
                 if (current(id) is VmState.Running) {
                     set(id, if (code == 0) VmState.Stopped else VmState.Error("exit $code"))
                 } else set(id, VmState.Stopped)
+            } catch (e: CancellationException) {
+                set(id, VmState.Stopped) // stopped while preparing
             } catch (e: Exception) {
-                set(id, VmState.Error(e.message ?: e.javaClass.simpleName))
+                set(id, if (current(id) is VmState.Stopping) VmState.Stopped else VmState.Error(e.message ?: e.javaClass.simpleName))
             } finally {
                 procs.remove(id)
                 displays.remove(id)
+                jobs.remove(id)
             }
         }
     }
 
     fun stop(id: String) {
         val p = procs[id]
+        // Still extracting / setting up: cancel the start (setup processes die with proot's --kill-on-exit).
+        if (p == null && current(id).let { it is VmState.Preparing || it is VmState.Booting }) {
+            set(id, VmState.Stopping)
+            engine.cancelSetup(id)
+            jobs[id]?.cancel()
+            return
+        }
         if (p == null) {
             // App space: stop every app of that virtual user.
             if (current(id) is VmState.Running) scope.launch {
