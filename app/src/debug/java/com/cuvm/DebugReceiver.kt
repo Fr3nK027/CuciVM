@@ -46,6 +46,13 @@ class DebugReceiver : BroadcastReceiver() {
                         val u = CuciVm.vms.spaceUser(it)
                         log("gms supported=${CuciVm.space.gmsSupported()} set=${CuciVm.space.setGms(u, intent.getBooleanExtra("on", true))} now=${CuciVm.space.gmsInstalled(u)}")
                     }
+                    // --es path <apk in the app's external files dir>
+                    "APK" -> vm?.let {
+                        val f = java.io.File(context.getExternalFilesDir(null), intent.getStringExtra("path") ?: "test.apk")
+                        val user = CuciVm.vms.spaceUser(it)
+                        CuciVm.space.ensureUser(user)
+                        log("apk $f: ${CuciVm.space.importApk(android.net.Uri.fromFile(f), user)}")
+                    }
                     "IMPORT", "LAUNCH", "APPS" -> {
                         val v = vm ?: return@launch log("no VM")
                         val user = CuciVm.vms.spaceUser(v)

@@ -39,7 +39,15 @@ class AppSpace {
         if (gmsSupported() && !gmsInstalled(user)) setGms(user, true)
     }
 
-    fun importApk(uri: Uri, user: Int): Result<Unit> = result(core.installPackageAsUser(uri, user))
+    fun importApk(uri: Uri, user: Int): Result<Unit> {
+        val r = core.installPackageAsUser(uri, user)
+        return result(r).onSuccess {
+            val meta = runCatching {
+                BlackBoxCore.getBPackageManager().getApplicationInfo(r.packageName, android.content.pm.PackageManager.GET_META_DATA, user)?.metaData
+            }.getOrNull()
+            if (meta?.containsKey("com.google.android.gms.version") == true) enableGms(user)
+        }
+    }
 
     private fun result(r: top.niunaijun.blackbox.entity.pm.InstallResult): Result<Unit> =
         if (r.success) Result.success(Unit) else Result.failure(IllegalStateException(r.msg ?: "install failed"))
