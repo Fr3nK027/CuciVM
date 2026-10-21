@@ -60,6 +60,7 @@
     <string name="res_device_landscape">This phone, landscape</string>
     <string name="res_custom">Custom</string>
     <string name="res_desktop">Laptop desktop %1$s</string>
+    <string name="res_desktop_full">Desktop, full phone screen</string>
     <string name="res_add_custom">Add a custom size</string>
     <string name="res_custom_title">Width × height × DPI</string>
 

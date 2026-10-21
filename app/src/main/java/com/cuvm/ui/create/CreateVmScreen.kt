@@ -60,14 +60,24 @@ data class Resolution(val w: Int, val h: Int, val dpi: Int)
 
 @Composable
 fun resolutionPresets(): List<Pair<Resolution, String?>> {
-    val m = LocalContext.current.resources.displayMetrics
+    val ctx = LocalContext.current
+    val m = ctx.resources.displayMetrics
+    // The guest is shown full screen (no system bars): size the full-screen desktop on the real display.
+    val real = android.util.DisplayMetrics().also {
+        @Suppress("DEPRECATION")
+        (ctx.getSystemService(android.content.Context.WINDOW_SERVICE) as android.view.WindowManager).defaultDisplay.getRealMetrics(it)
+    }
+    val longSide = maxOf(real.widthPixels, real.heightPixels)
+    val shortSide = minOf(real.widthPixels, real.heightPixels)
     val portrait = Resolution(minOf(m.widthPixels, m.heightPixels), maxOf(m.widthPixels, m.heightPixels), m.densityDpi)
     return listOf(
         Resolution(480, 800, 240) to null, Resolution(540, 960, 240) to null,
         Resolution(720, 1280, 320) to null, Resolution(1080, 1920, 480) to null,
         portrait to stringResource(R.string.res_device_portrait),
         Resolution(portrait.h, portrait.w, portrait.dpi) to stringResource(R.string.res_device_landscape),
-        // Laptop-style desktops: landscape, desktop density.
+        // Laptop-style desktops: landscape, desktop density. The first fills this phone's screen (no black bars).
+        // (the key bar, ~56 dp, takes the bottom of the screen)
+        Resolution((720f * longSide / (shortSide - 56 * m.density)).toInt() / 8 * 8, 720, 120) to stringResource(R.string.res_desktop_full),
         Resolution(1280, 720, 120) to stringResource(R.string.res_desktop, "720p"),
         Resolution(1600, 900, 140) to stringResource(R.string.res_desktop, "900p"),
         Resolution(1920, 1080, 160) to stringResource(R.string.res_desktop, "1080p"),
@@ -147,7 +157,16 @@ fun CreateVmScreen(onBack: () -> Unit, onDone: () -> Unit) {
                         Text(stringResource(R.string.add_custom_image_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
                     }
                 }
-                1 -> ResolutionPicker(res, { res = it }, Modifier.weight(1f))
+                1 -> {
+                    // Preselected: desktops fill the phone in landscape, Android spaces use the phone's own screen.
+                    val presets = resolutionPresets()
+                    val fullDesktop = stringResource(R.string.res_desktop_full)
+                    val phone = stringResource(R.string.res_device_portrait)
+                    LaunchedEffect(image?.id) {
+                        if (res == null) res = presets.firstOrNull { it.second == if (image?.os == "android") phone else fullDesktop }?.first
+                    }
+                    ResolutionPicker(res, { res = it }, Modifier.weight(1f))
+                }
                 else -> Column(Modifier.weight(1f).padding(16.dp)) {
                     LaunchedEffect(image) { if (name.isEmpty() && image != null) name = CuciVm.vms.defaultName(image) }
                     OutlinedTextField(

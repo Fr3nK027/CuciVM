@@ -59,6 +59,7 @@
     <string name="res_device_landscape">Questo telefono, orizzontale</string>
     <string name="res_custom">Personalizzata</string>
     <string name="res_desktop">Desktop da portatile %1$s</string>
+    <string name="res_desktop_full">Desktop a tutto schermo</string>
     <string name="res_add_custom">Aggiungi una dimensione</string>
     <string name="res_custom_title">Larghezza × altezza × DPI</string>
 
