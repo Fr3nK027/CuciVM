@@ -393,6 +393,7 @@ public class BActivityThread extends IBActivityThread.Stub {
         }
 
         VirtualRuntime.setupRuntime(processName, applicationInfo);
+        top.niunaijun.blackbox.core.SpaceIdentity.load(BlackBoxCore.getContext(), getUserId()); // CuciVM
 
         BRVMRuntime.get(BRVMRuntime.get().getRuntime()).setTargetSdkVersion(applicationInfo.targetSdkVersion);
         if (BuildCompat.isS()) {

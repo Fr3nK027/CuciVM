@@ -52,9 +52,25 @@ class AppSpace {
     private fun result(r: top.niunaijun.blackbox.entity.pm.InstallResult): Result<Unit> =
         if (r.success) Result.success(Unit) else Result.failure(IllegalStateException(r.msg ?: "install failed"))
 
-    fun launch(pkg: String, user: Int, loc: VmLocation?): Boolean {
+    fun launch(pkg: String, user: Int, loc: VmLocation?, identity: com.cuvm.data.VmIdentity? = null): Boolean {
         applyLocation(pkg, user, loc)
+        identity?.let { writeIdentity(user, it) }
         return core.launchApk(pkg, user)
+    }
+
+    /** What the space's apps see as this device (read by the engine when an app process starts). */
+    private fun writeIdentity(user: Int, i: com.cuvm.data.VmIdentity) {
+        val f = top.niunaijun.blackbox.core.SpaceIdentity.file(BlackBoxCore.getContext(), user)
+        f.parentFile?.mkdirs()
+        val p = java.util.Properties().apply {
+            // Early VMs got placeholder makers ("CuciVM Virtual Phone"): those keep the phone's own.
+            if (i.manufacturer != "CuciVM") {
+                setProperty("model", i.model); setProperty("brand", i.brand); setProperty("manufacturer", i.manufacturer)
+                setProperty("device", i.device); setProperty("product", i.product)
+            }
+            setProperty("serial", i.serial); setProperty("androidId", i.androidId); setProperty("imei", i.imei ?: "")
+        }
+        f.outputStream().use { p.store(it, null) }
     }
 
     fun remove(pkg: String, user: Int) = core.uninstallPackageAsUser(pkg, user)

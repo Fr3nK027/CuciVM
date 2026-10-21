@@ -51,6 +51,20 @@ public class SystemProviderStub extends ClassInvocationStub implements BContentP
         
         
         if ("call".equals(methodName)) {
+            // CuciVM: each space has its own Android ID (Settings.Secure "android_id").
+            String id = top.niunaijun.blackbox.core.SpaceIdentity.androidId;
+            if (id != null && args != null) {
+                boolean secure = false, androidIdKey = false;
+                for (Object a : args) {
+                    if ("GET_secure".equals(a)) secure = true;
+                    if ("android_id".equals(a)) androidIdKey = true;
+                }
+                if (secure && androidIdKey) {
+                    android.os.Bundle b = new android.os.Bundle();
+                    b.putString("value", id);
+                    return b;
+                }
+            }
             
             if (args != null) {
                 Class<?> attributionSourceClass = BRAttributionSource.getRealClass();

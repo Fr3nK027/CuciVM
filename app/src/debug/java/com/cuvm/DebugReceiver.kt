@@ -64,7 +64,7 @@ class DebugReceiver : BroadcastReceiver() {
                         val pkg = intent.getStringExtra("pkg") ?: ""
                         when (intent.action?.substringAfterLast('.')) {
                             "IMPORT" -> log("import $pkg: ${CuciVm.space.importInstalled(pkg, user)}")
-                            "LAUNCH" -> log("launch $pkg: ${CuciVm.space.launch(pkg, user, CuciVm.vms.locationNow(v.id))}")
+                            "LAUNCH" -> log("launch $pkg: ${CuciVm.space.launch(pkg, user, CuciVm.vms.locationNow(v.id), CuciVm.vms.identity(v.id).first())}")
                             else -> CuciVm.space.apps(user).forEach { log("app ${it.packageName}") }
                         }
                     }

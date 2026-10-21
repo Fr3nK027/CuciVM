@@ -28,8 +28,9 @@ object Identity {
     }
 
     fun newIdentity(vmId: String, now: Long, r: Random = Random.Default) = VmIdentity(
-        vmId = vmId, model = "Virtual Phone", brand = "vmbox", product = "vphone", device = "vphone",
-        manufacturer = "CuciVM", serial = hex(12, r), androidId = hex(16, r).lowercase(),
+        // Same model as this phone (apps that check the maker keep working); own serial and Android ID.
+        vmId = vmId, model = android.os.Build.MODEL, brand = android.os.Build.BRAND, product = android.os.Build.PRODUCT,
+        device = android.os.Build.DEVICE, manufacturer = android.os.Build.MANUFACTURER, serial = hex(12, r), androidId = hex(16, r).lowercase(),
         processorInfo = "ARMv8 (host)", imei = imei(r), baseband = "virtual-1.0",
         carrierMccMnc = "00101", carrierName = "Test Network", updatedAt = now,
     )

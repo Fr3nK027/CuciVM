@@ -71,6 +71,7 @@ import com.cuvm.data.Vm
 import com.cuvm.engine.VmState
 import com.cuvm.ui.common.ConfirmDialog
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -137,7 +138,7 @@ fun AppSpaceScreen(vm: Vm, onToPhone: () -> Unit, onSettings: () -> Unit) {
                             onClick = {
                                 scope.launch {
                                     val ok = withContext(Dispatchers.IO) {
-                                        runCatching { CuciVm.space.launch(app.packageName, user!!, CuciVm.vms.locationNow(vm.id)) }.getOrDefault(false)
+                                        runCatching { CuciVm.space.launch(app.packageName, user!!, CuciVm.vms.locationNow(vm.id), CuciVm.vms.identity(vm.id).firstOrNull()) }.getOrDefault(false)
                                     }
                                     if (!ok) snack.showSnackbar(failed)
                                 }

@@ -50,7 +50,8 @@ public class ITelephonyManagerProxy extends BinderInvocationStub {
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
 
 
-            return Md5Utils.md5(BlackBoxCore.getHostPkg());
+            String imei = top.niunaijun.blackbox.core.SpaceIdentity.imei; // CuciVM: per-space IMEI
+            return imei != null ? imei : Md5Utils.md5(BlackBoxCore.getHostPkg());
         }
     }
 
@@ -60,7 +61,8 @@ public class ITelephonyManagerProxy extends BinderInvocationStub {
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
 
 
-            return Md5Utils.md5(BlackBoxCore.getHostPkg());
+            String imei = top.niunaijun.blackbox.core.SpaceIdentity.imei; // CuciVM: per-space IMEI
+            return imei != null ? imei : Md5Utils.md5(BlackBoxCore.getHostPkg());
         }
     }
 
@@ -70,7 +72,8 @@ public class ITelephonyManagerProxy extends BinderInvocationStub {
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
 
 
-            return Md5Utils.md5(BlackBoxCore.getHostPkg());
+            String imei = top.niunaijun.blackbox.core.SpaceIdentity.imei; // CuciVM: per-space IMEI
+            return imei != null ? imei : Md5Utils.md5(BlackBoxCore.getHostPkg());
         }
     }
 
@@ -95,7 +98,8 @@ public class ITelephonyManagerProxy extends BinderInvocationStub {
     public static class GetSubscriberId extends MethodHook {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            return Md5Utils.md5(BlackBoxCore.getHostPkg());
+            String imei = top.niunaijun.blackbox.core.SpaceIdentity.imei; // CuciVM: per-space IMEI
+            return imei != null ? imei : Md5Utils.md5(BlackBoxCore.getHostPkg());
         }
     }
 
@@ -103,7 +107,8 @@ public class ITelephonyManagerProxy extends BinderInvocationStub {
     public static class GetDeviceIdWithFeature extends MethodHook {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            return Md5Utils.md5(BlackBoxCore.getHostPkg());
+            String imei = top.niunaijun.blackbox.core.SpaceIdentity.imei; // CuciVM: per-space IMEI
+            return imei != null ? imei : Md5Utils.md5(BlackBoxCore.getHostPkg());
         }
     }
 
