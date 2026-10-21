@@ -3,6 +3,7 @@ package com.cuvm.engine
 import android.content.Context
 import android.system.Os
 import android.system.OsConstants
+import com.cuvm.R
 import com.cuvm.data.Catalogue
 import com.cuvm.data.GuestImage
 import com.cuvm.data.Vm
@@ -166,6 +167,9 @@ class ProotEngine(private val context: Context) : GuestEngine {
     override fun start(vm: Vm, image: GuestImage, display: Int): Process {
         val port = 5900 + display
         val session = Catalogue.profile(image).session
+        // The phone's Download folder as a desktop icon, so files (setup.exe...) are one tap away.
+        val link = "/root/Desktop/" + context.getString(R.string.phone_downloads).replace("'", "")
+        val shared = if (vm.shareFolder) "mkdir -p /root/Desktop && ln -sfn /mnt/shared '$link'" else "rm -f '$link'"
         val script = """
             rm -f /tmp/.X$display-lock /tmp/.X11-unix/X$display
             "$(command -v Xvnc || command -v Xtigervnc)" :$display -geometry ${vm.width}x${vm.height} -dpi ${vm.dpi} -depth 24 -SecurityTypes None -localhost -rfbport $port -AlwaysShared -noreset -CompareFB=0 -FrameRate=${vm.refreshRate} &
@@ -176,6 +180,7 @@ class ProotEngine(private val context: Context) : GuestEngine {
               pulseaudio --daemonize=yes -n --exit-idle-time=-1 --log-target=file:/tmp/pulse.log                 -L "module-null-sink sink_name=cuvm rate=48000"                 -L "module-native-protocol-unix auth-anonymous=1 socket=/tmp/pulse.sock"                 -L "module-simple-protocol-tcp source=cuvm.monitor record=true playback=false listen=127.0.0.1 port=${AUDIO_BASE + display} rate=48000 format=s16le channels=2"
               export PULSE_SERVER=unix:/tmp/pulse.sock
             fi
+            $shared
             $session
         """.trimIndent()
         return guest(vm, script)

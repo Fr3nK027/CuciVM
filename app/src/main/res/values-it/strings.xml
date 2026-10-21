@@ -105,6 +105,7 @@
     <string name="share_clipboard">Condividi appunti</string>
     <string name="share_folder">Condividi la cartella Download</string>
     <string name="share_folder_on">Visibile come /mnt/shared</string>
+    <string name="phone_downloads">Download del telefono</string>
     <string name="host_notifications">Mostra le sue notifiche sul telefono</string>
     <string name="cat_power">Alimentazione</string>
     <string name="shutdown_vm">Spegni la VM</string>

@@ -40,6 +40,7 @@ class DebugReceiver : BroadcastReceiver() {
                         val v = CuciVm.backups.restore(android.net.Uri.fromFile(f)); log("restored ${v.name} ${v.id}")
                     }
                     // --ez on true|false
+                    "SHARE" -> vm?.let { CuciVm.vms.update(it.copy(shareFolder = intent.getBooleanExtra("on", true))); log("shareFolder ${it.name}") }
                     "SMALLWINDOW" -> vm?.let { CuciVm.vms.update(it.copy(smallWindow = intent.getBooleanExtra("on", true))); log("smallWindow ${it.name}") }
                     // App spaces: --es name <vm> --es pkg <package>
                     "GMS" -> vm?.let {

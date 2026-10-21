@@ -106,6 +106,7 @@
     <string name="share_clipboard">Share clipboard</string>
     <string name="share_folder">Share Download folder</string>
     <string name="share_folder_on">Visible as /mnt/shared</string>
+    <string name="phone_downloads">Phone Downloads</string>
     <string name="host_notifications">Show its notifications on the phone</string>
     <string name="cat_power">Power</string>
     <string name="shutdown_vm">Shut down VM</string>
