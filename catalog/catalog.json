@@ -128,6 +128,20 @@
       "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Fedora_icon_%282021%29.svg/250px-Fedora_icon_%282021%29.svg.png",
       "setup": "dnf -y --setopt=install_weak_deps=False install xfwm4 xfce4-session xfce4-panel xfdesktop xfce4-terminal Thunar xfce4-settings tigervnc-server-minimal pulseaudio dbus-x11 dejavu-sans-fonts adwaita-icon-theme firefox && rm -f /etc/xdg/autostart/xfce-polkit*.desktop && printf '%s\n' 'WebBrowser=firefox' 'TerminalEmulator=xfce4-terminal' > /tmp/helpers.rc && mkdir -p /root/.config/xfce4 && mv /tmp/helpers.rc /root/.config/xfce4/helpers.rc && mkdir -p /root/.config/xfce4/xfconf/xfce-perchannel-xml && printf '%s\n' '<?xml version=\"1.0\" encoding=\"UTF-8\"?>' '<channel name=\"xfce4-desktop\" version=\"1.0\"><property name=\"desktop-icons\" type=\"empty\"><property name=\"single-click\" type=\"bool\" value=\"true\"/></property></channel>' > /root/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml",
       "session": "exec dbus-launch --exit-with-session startxfce4"
+    },
+    {
+      "id": "archlinux-xfce",
+      "os": "linux",
+      "name": "Arch Linux ARM · XFCE",
+      "version": "rolling",
+      "arch": "arm64",
+      "engine": "proot",
+      "url": "https://github.com/termux/proot-distro/releases/download/v4.29.0/archlinux-aarch64-pd-v4.29.0.tar.xz",
+      "sha256": "08d74365213e647c558e561b0a2a7afb6fa3dfe345a1994c62ccac5af1a1cdc6",
+      "size": 151744988,
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Arch_Linux_%22Crystal%22_icon.svg/250px-Arch_Linux_%22Crystal%22_icon.svg.png",
+      "setup": "sed -i -e '/^\\[options\\]/a DisableSandbox' -e 's/^CheckSpace/#CheckSpace/' /etc/pacman.conf && pacman-key --init && pacman-key --populate archlinuxarm && pacman -Syu --noconfirm --needed xfce4 tigervnc pulseaudio dbus firefox ttf-dejavu && printf '%s\n' 'WebBrowser=firefox' 'TerminalEmulator=xfce4-terminal' > /tmp/helpers.rc && mkdir -p /root/.config/xfce4 && mv /tmp/helpers.rc /root/.config/xfce4/helpers.rc && mkdir -p /root/.config/xfce4/xfconf/xfce-perchannel-xml && printf '%s\n' '<?xml version=\"1.0\" encoding=\"UTF-8\"?>' '<channel name=\"xfce4-desktop\" version=\"1.0\"><property name=\"desktop-icons\" type=\"empty\"><property name=\"single-click\" type=\"bool\" value=\"true\"/></property></channel>' > /root/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml",
+      "session": "exec dbus-launch --exit-with-session startxfce4"
     }
   ],
   "logos": {
