@@ -56,10 +56,15 @@ class MainActivity : ComponentActivity() {
         intent.getStringExtra(EXTRA_OPEN_VM)?.let { openVm = it }
     }
 
-    // Locked VMs ask again once the app has left the screen.
+    // Locked VMs ask again once the app has been away for a while.
     override fun onStop() {
         super.onStop()
-        com.cuvm.ui.display.VmLock.unlocked.clear()
+        com.cuvm.ui.display.VmLock.onAppHidden()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        com.cuvm.ui.display.VmLock.onAppShown()
     }
 
     // "Small window": leaving the app while a VM is shown keeps it on screen as picture-in-picture.

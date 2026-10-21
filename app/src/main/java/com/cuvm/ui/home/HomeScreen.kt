@@ -146,14 +146,17 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     items(vms, key = { it.id }) { vm ->
-                        VmCard(vm, states[vm.id] ?: VmState.Stopped, compact = true, onOpen, onSettings, Modifier.aspectRatio(0.58f))
+                        if (landscape) VmCard(vm, states[vm.id] ?: VmState.Stopped, compact = true, onOpen, onSettings, Modifier.height(132.dp), wide = true)
+                        else VmCard(vm, states[vm.id] ?: VmState.Stopped, compact = true, onOpen, onSettings, Modifier.aspectRatio(0.58f))
                     }
                 }
                 else -> Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
                     HorizontalPager(pager, Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 48.dp), pageSpacing = 16.dp) { page ->
                         val vm = vms[page]
-                        Box(Modifier.fillMaxSize().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
-                            VmCard(vm, states[vm.id] ?: VmState.Stopped, compact = false, onOpen, onSettings, Modifier.fillMaxWidth().aspectRatio(if (landscape) 1.6f else 9f / 16f, matchHeightConstraintsFirst = true))
+                        Box(Modifier.fillMaxSize().padding(vertical = if (landscape) 8.dp else 24.dp), contentAlignment = Alignment.Center) {
+                            // Landscape leaves little height: the card is laid out in a row instead.
+                            if (landscape) VmCard(vm, states[vm.id] ?: VmState.Stopped, compact = false, onOpen, onSettings, Modifier.fillMaxSize(), wide = true)
+                            else VmCard(vm, states[vm.id] ?: VmState.Stopped, compact = false, onOpen, onSettings, Modifier.fillMaxWidth().aspectRatio(9f / 16f, matchHeightConstraintsFirst = true))
                         }
                     }
                     Text("${pager.currentPage + 1}/${vms.size}", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 12.dp))
@@ -175,21 +178,12 @@ private fun EmptyHome(onCreate: () -> Unit) {
 }
 
 @Composable
-fun VmCard(vm: Vm, state: VmState, compact: Boolean, onOpen: (String) -> Unit, onSettings: (String) -> Unit, modifier: Modifier = Modifier) {
+fun VmCard(vm: Vm, state: VmState, compact: Boolean, onOpen: (String) -> Unit, onSettings: (String) -> Unit, modifier: Modifier = Modifier, wide: Boolean = false) {
     val scope = rememberCoroutineScope()
     var confirmStop by remember { mutableStateOf(false) }
-    OutlinedCard(modifier, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
-        Column(Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            val image by produceState<GuestImage?>(null, vm.imageId) { value = CuciVm.vms.image(vm.imageId) }
-            OsLogo(image?.logoUrl, image?.os ?: "linux", if (compact) 32.dp else 48.dp, Modifier.padding(bottom = 8.dp))
-            Text(
-                vm.name, style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
-                maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.weight(1f))
-            StateBlock(vm, state, compact, onOpen)
-            Spacer(Modifier.weight(1f))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+    val image by produceState<GuestImage?>(null, vm.imageId) { value = CuciVm.vms.image(vm.imageId) }
+    val actions: @Composable () -> Unit = {
+        Row(if (wide) Modifier else Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 IconButton(onClick = { if (state.active) confirmStop = true else { CuciVm.runtime.start(vm.id); if (!vm.bootInBackground) onOpen(vm.id) } }) {
                     Icon(Icons.Outlined.PowerSettingsNew, stringResource(if (state.active) R.string.shutdown else R.string.start), tint = MaterialTheme.colorScheme.primary)
                 }
@@ -206,7 +200,33 @@ fun VmCard(vm: Vm, state: VmState, compact: Boolean, onOpen: (String) -> Unit, o
                 IconButton(onClick = { onSettings(vm.id) }) {
                     Icon(Icons.Filled.Settings, stringResource(R.string.settings), tint = MaterialTheme.colorScheme.primary)
                 }
+        }
+    }
+    OutlinedCard(modifier, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+        if (wide) Row(Modifier.fillMaxSize().padding(horizontal = if (compact) 16.dp else 24.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 24.dp)) {
+            OsLogo(image?.logoUrl, image?.os ?: "linux", if (compact) 36.dp else 48.dp)
+            Column(Modifier.weight(1f)) {
+                Text(vm.name, style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                // The tagline says nothing new here; real states (setup, errors) do.
+                if (state != VmState.Stopped) Text(
+                    stateText(state), maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium,
+                    color = if (state is VmState.Error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                StateBlock(vm, state, compact = true, onOpen, gap = 4.dp, showText = false)
+                actions()
+            }
+        } else Column(Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            OsLogo(image?.logoUrl, image?.os ?: "linux", if (compact) 32.dp else 48.dp, Modifier.padding(bottom = 8.dp))
+            Text(
+                vm.name, style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
+                maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.weight(1f))
+            StateBlock(vm, state, compact, onOpen)
+            Spacer(Modifier.weight(1f))
+            actions()
         }
     }
     if (confirmStop) ConfirmDialog(
@@ -216,10 +236,10 @@ fun VmCard(vm: Vm, state: VmState, compact: Boolean, onOpen: (String) -> Unit, o
 }
 
 @Composable
-private fun StateBlock(vm: Vm, state: VmState, compact: Boolean, onOpen: (String) -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+private fun StateBlock(vm: Vm, state: VmState, compact: Boolean, onOpen: (String) -> Unit, gap: androidx.compose.ui.unit.Dp = 16.dp, showText: Boolean = true) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(gap)) {
         val text = stateText(state)
-        Text(
+        if (showText) Text(
             text, textAlign = TextAlign.Center, maxLines = 3, overflow = TextOverflow.Ellipsis,
             style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
             color = if (state is VmState.Error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,

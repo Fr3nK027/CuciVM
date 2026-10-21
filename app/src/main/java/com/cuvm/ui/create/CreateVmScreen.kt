@@ -130,6 +130,9 @@ fun CreateVmScreen(onBack: () -> Unit, onDone: () -> Unit) {
     var imageId by rememberSaveable { mutableStateOf<String?>(null) }
     var res by remember { mutableStateOf<Resolution?>(null) }
     var name by rememberSaveable { mutableStateOf("") }
+    // The system a size / name was chosen for by the user; changing system brings back the defaults.
+    var resPickedFor by rememberSaveable { mutableStateOf<String?>(null) }
+    var nameTypedFor by rememberSaveable { mutableStateOf<String?>(null) }
     val image = images.firstOrNull { it.id == imageId }
     val back: () -> Unit = { if (step > 0) step-- else onBack() }
     BackHandler(onBack = back)
@@ -163,14 +166,14 @@ fun CreateVmScreen(onBack: () -> Unit, onDone: () -> Unit) {
                     val fullDesktop = stringResource(R.string.res_desktop_full)
                     val phone = stringResource(R.string.res_device_portrait)
                     LaunchedEffect(image?.id) {
-                        if (res == null) res = presets.firstOrNull { it.second == if (image?.os == "android") phone else fullDesktop }?.first
+                        if (resPickedFor != image?.id) res = presets.firstOrNull { it.second == if (image?.os == "android") phone else fullDesktop }?.first
                     }
-                    ResolutionPicker(res, { res = it }, Modifier.weight(1f))
+                    ResolutionPicker(res, { res = it; resPickedFor = image?.id }, Modifier.weight(1f))
                 }
                 else -> Column(Modifier.weight(1f).padding(16.dp)) {
-                    LaunchedEffect(image) { if (name.isEmpty() && image != null) name = CuciVm.vms.defaultName(image) }
+                    LaunchedEffect(image) { if (nameTypedFor != image?.id && image != null) name = CuciVm.vms.defaultName(image) }
                     OutlinedTextField(
-                        value = name, onValueChange = { name = it.take(60) }, label = { Text(stringResource(R.string.vm_name)) },
+                        value = name, onValueChange = { name = it.take(60); nameTypedFor = image?.id }, label = { Text(stringResource(R.string.vm_name)) },
                         singleLine = true, isError = name.isBlank(), modifier = Modifier.fillMaxWidth(),
                         supportingText = { Text(stringResource(R.string.vm_name_hint)) },
                     )

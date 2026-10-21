@@ -169,7 +169,9 @@ class ProotEngine(private val context: Context) : GuestEngine {
         val session = Catalogue.profile(image).session
         // The phone's Download folder as a desktop icon, so files (setup.exe...) are one tap away.
         val link = "/root/Desktop/" + context.getString(R.string.phone_downloads).replace("'", "")
-        val shared = if (vm.shareFolder) "mkdir -p /root/Desktop && ln -sfn /mnt/shared '$link'" else "rm -f '$link'"
+        // Old links (another app language) are found by their target and removed first.
+        val shared = "find /root/Desktop -maxdepth 1 -lname /mnt/shared -exec rm -f {} + 2>/dev/null; " +
+            if (vm.shareFolder) "mkdir -p /root/Desktop && ln -sfn /mnt/shared '$link'" else "true"
         val script = """
             rm -f /tmp/.X$display-lock /tmp/.X11-unix/X$display
             "$(command -v Xvnc || command -v Xtigervnc)" :$display -geometry ${vm.width}x${vm.height} -dpi ${vm.dpi} -depth 24 -SecurityTypes None -localhost -rfbport $port -AlwaysShared -noreset -CompareFB=0 -FrameRate=${vm.refreshRate} &

@@ -113,8 +113,7 @@ fun DisplayScreen(id: String, onToPhone: () -> Unit, onSettings: () -> Unit, onS
     }
 
     val v = vm ?: return
-    // Without a screen lock on the phone there is nothing to ask for: never lock the user out.
-    if (v.locked && v.id !in VmLock.unlocked && VmLock.available(ctx)) return LockGate(v.id, v.name, onToPhone)
+    if (VmLock.isLocked(ctx, v)) return LockGate(v.id, v.name, onToPhone)
     val engineType by produceState<String?>(null, v.imageId) { value = CuciVm.vms.image(v.imageId)?.engine }
     if (engineType == AppSpace.ENGINE) return AppSpaceScreen(v, onToPhone, onSettings)
     DisposableEffect(v.smallWindow, v.width, v.height) {

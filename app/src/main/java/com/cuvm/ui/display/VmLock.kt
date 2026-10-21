@@ -27,9 +27,21 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.cuvm.R
 
-/** VMs unlocked since the app came to the screen (cleared in MainActivity.onStop). */
+/** VMs unlocked since the app came to the screen (forgotten a minute after it leaves, see MainActivity). */
 object VmLock {
     val unlocked = androidx.compose.runtime.mutableStateListOf<String>()
+    private var leftAt = 0L
+
+    fun onAppHidden() { leftAt = android.os.SystemClock.elapsedRealtime() }
+
+    /** Short trips (file picker, an app from a space) do not ask again; a minute away does. */
+    fun onAppShown() {
+        if (leftAt != 0L && android.os.SystemClock.elapsedRealtime() - leftAt > 60_000) unlocked.clear()
+        leftAt = 0L
+    }
+
+    /** Without a screen lock on the phone there is nothing to ask for: never lock the user out. */
+    fun isLocked(ctx: Context, vm: com.cuvm.data.Vm) = vm.locked && vm.id !in unlocked && available(ctx)
 
     /** A lock needs the phone's own screen lock (fingerprint, face, PIN, pattern or password). */
     fun available(ctx: Context) = ctx.getSystemService(KeyguardManager::class.java).isDeviceSecure

@@ -49,6 +49,8 @@ fun VmSettingsScreen(id: String, onBack: () -> Unit, onOpen: (String) -> Unit, o
     var engineType by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf<String?>(null) }   // backup in progress / result message
     val v = vm ?: return
+    // Settings can turn the lock off, back up or delete the VM: same gate as opening it.
+    if (com.cuvm.ui.display.VmLock.isLocked(androidx.compose.ui.platform.LocalContext.current, v)) return com.cuvm.ui.display.LockGate(v.id, v.name, onBack)
     LaunchedEffect(v.imageId) { CuciVm.vms.image(v.imageId)?.let { image = it.name; engineType = it.engine } }
     val savedMsg = stringResource(R.string.backup_saved)
     val backupFile = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/gzip")) { uri ->
