@@ -37,6 +37,17 @@ public class PackageParserCompat {
         return null;
     }
 
+    /**
+     * CuciVM: a phone app installed as base.apk + split_*.apk is parsed as a whole folder, so the
+     * components declared in its splits (Chrome's browser activity) exist in the space too.
+     */
+    public static File clusterOf(File apk) {
+        File dir = apk.getParentFile();
+        if (dir == null || !"base.apk".equals(apk.getName())) return apk;
+        String[] splits = dir.list((d, n) -> n.startsWith("split_") && n.endsWith(".apk"));
+        return splits != null && splits.length > 0 ? dir : apk;
+    }
+
     public static Package parsePackage(PackageParser parser, File packageFile, int flags) throws Throwable {
         if (API_LEVEL >= M) {
             return BRPackageParserMarshmallow.getWithException(parser).parsePackage(packageFile, flags);

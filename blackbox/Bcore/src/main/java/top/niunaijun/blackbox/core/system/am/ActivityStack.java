@@ -100,6 +100,7 @@ public class ActivityStack {
 
         ResolveInfo resolveInfo = BPackageManagerService.get().resolveActivity(intent, GET_ACTIVITIES, resolvedType, userId);
         if (resolveInfo == null || resolveInfo.activityInfo == null) {
+            Log.w(TAG, "startActivityLocked: nothing in the space handles " + intent);
             return 0;
         }
         Log.d(TAG, "startActivityLocked : " + resolveInfo.activityInfo);

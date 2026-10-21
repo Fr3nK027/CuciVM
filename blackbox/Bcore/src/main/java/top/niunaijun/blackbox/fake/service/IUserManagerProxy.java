@@ -44,6 +44,15 @@ public class IUserManagerProxy extends BinderInvocationStub {
         }
     }
 
+    // CuciVM: Android 16 form (package, userId); no managed restrictions inside a space.
+    @ProxyMethod("getApplicationRestrictionsForUser")
+    public static class GetApplicationRestrictionsForUser extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            return new android.os.Bundle();
+        }
+    }
+
     @ProxyMethod("getProfileParent")
     public static class GetProfileParent extends MethodHook {
         @Override

@@ -729,7 +729,7 @@ public class BPackageManagerService extends IBPackageManagerService.Stub impleme
     private PackageParser.Package parserApk(String file) {
         try {
             PackageParser parser = PackageParserCompat.createParser(new File(file));
-            PackageParser.Package aPackage = PackageParserCompat.parsePackage(parser, new File(file), 0);
+            PackageParser.Package aPackage = PackageParserCompat.parsePackage(parser, PackageParserCompat.clusterOf(new File(file)), 0);
             PackageParserCompat.collectCertificates(parser, aPackage, 0);
             return aPackage;
         } catch (Throwable t) {

@@ -432,6 +432,9 @@ public class IActivityManagerProxy extends ClassInvocationStub {
     public static class bindServiceInstance extends MethodHook {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            // CuciVM: instance names are only allowed for isolated services; the proxy services are not
+            // (Chrome's renderers crash the browser otherwise).
+            if (args.length > 6 && args[6] instanceof String) args[6] = null;
             return BindServiceCommon(who,method,args,7);
         }
 
