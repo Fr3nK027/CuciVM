@@ -201,7 +201,7 @@ private fun ImportAppsScreen(user: Int, onDone: () -> Unit) {
     val host by produceState<List<Pair<ApplicationInfo, String>>?>(null) {
         value = withContext(Dispatchers.IO) {
             pm.getInstalledApplications(0)
-                .filter { it.packageName != ctx.packageName && pm.getLaunchIntentForPackage(it.packageName) != null }
+                .filter { it.packageName != ctx.packageName && !top.niunaijun.blackbox.core.GmsCore.isGoogleAppOrService(it.packageName) && pm.getLaunchIntentForPackage(it.packageName) != null }
                 .map { it to it.loadLabel(pm).toString() }
                 .sortedBy { it.second.lowercase() }
         }

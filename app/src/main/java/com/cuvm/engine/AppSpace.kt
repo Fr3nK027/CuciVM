@@ -4,6 +4,7 @@ import android.content.pm.ApplicationInfo
 import android.net.Uri
 import com.cuvm.data.VmLocation
 import top.niunaijun.blackbox.BlackBoxCore
+import top.niunaijun.blackbox.core.GmsCore
 import top.niunaijun.blackbox.entity.location.BLocation
 import top.niunaijun.blackbox.fake.frameworks.BLocationManager
 
@@ -18,11 +19,25 @@ class AppSpace {
         if (core.users.none { it.id == user }) core.createUser(user)
     }
 
-    fun apps(user: Int): List<ApplicationInfo> =
+    /** Apps the user put in the space; Google services added by the switch stay hidden. */
+    fun apps(user: Int): List<ApplicationInfo> = allApps(user).filter { !GmsCore.isGoogleAppOrService(it.packageName) }
+
+    private fun allApps(user: Int): List<ApplicationInfo> =
         core.getInstalledApplications(0, user).filter { it.packageName != BlackBoxCore.getHostPkg() }
 
     /** Clones an app already installed on the phone. */
-    fun importInstalled(pkg: String, user: Int): Result<Unit> = result(core.installPackageAsUser(pkg, user))
+    fun importInstalled(pkg: String, user: Int): Result<Unit> =
+        result(core.installPackageAsUser(pkg, user)).onSuccess { if (needsGms(pkg)) enableGms(user) }
+
+    /** Apps built with Google Play services declare its version in their manifest. */
+    private fun needsGms(pkg: String) = runCatching {
+        BlackBoxCore.getPackageManager().getApplicationInfo(pkg, android.content.pm.PackageManager.GET_META_DATA)
+            .metaData?.containsKey("com.google.android.gms.version") == true
+    }.getOrDefault(false)
+
+    private fun enableGms(user: Int) {
+        if (gmsSupported() && !gmsInstalled(user)) setGms(user, true)
+    }
 
     fun importApk(uri: Uri, user: Int): Result<Unit> = result(core.installPackageAsUser(uri, user))
 
@@ -36,7 +51,7 @@ class AppSpace {
 
     fun remove(pkg: String, user: Int) = core.uninstallPackageAsUser(pkg, user)
 
-    fun stopAll(user: Int) = apps(user).forEach { core.stopPackage(it.packageName, user) }
+    fun stopAll(user: Int) = allApps(user).forEach { core.stopPackage(it.packageName, user) }
 
     fun deleteUser(user: Int) = core.deleteUser(user)
 
