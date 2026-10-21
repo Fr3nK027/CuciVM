@@ -126,7 +126,7 @@
       "sha256": "0f683e7c3b250660b490479f0c1c57e7450082f6ddc81375ddc863e611a76c65",
       "size": 33788404,
       "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Fedora_icon_%282021%29.svg/250px-Fedora_icon_%282021%29.svg.png",
-      "setup": "dnf -y --setopt=install_weak_deps=False install xfwm4 xfce4-session xfce4-panel xfdesktop xfce4-terminal Thunar xfce4-settings tigervnc-server-minimal pulseaudio dbus-x11 dejavu-sans-fonts adwaita-icon-theme && mkdir -p /root/.config/xfce4/xfconf/xfce-perchannel-xml && printf '%s\n' '<?xml version=\"1.0\" encoding=\"UTF-8\"?>' '<channel name=\"xfce4-desktop\" version=\"1.0\"><property name=\"desktop-icons\" type=\"empty\"><property name=\"single-click\" type=\"bool\" value=\"true\"/></property></channel>' > /root/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml",
+      "setup": "dnf -y --setopt=install_weak_deps=False install xfwm4 xfce4-session xfce4-panel xfdesktop xfce4-terminal Thunar xfce4-settings tigervnc-server-minimal pulseaudio dbus-x11 dejavu-sans-fonts adwaita-icon-theme firefox && rm -f /etc/xdg/autostart/xfce-polkit*.desktop && printf '%s\n' 'WebBrowser=firefox' 'TerminalEmulator=xfce4-terminal' > /tmp/helpers.rc && mkdir -p /root/.config/xfce4 && mv /tmp/helpers.rc /root/.config/xfce4/helpers.rc && mkdir -p /root/.config/xfce4/xfconf/xfce-perchannel-xml && printf '%s\n' '<?xml version=\"1.0\" encoding=\"UTF-8\"?>' '<channel name=\"xfce4-desktop\" version=\"1.0\"><property name=\"desktop-icons\" type=\"empty\"><property name=\"single-click\" type=\"bool\" value=\"true\"/></property></channel>' > /root/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml",
       "session": "exec dbus-launch --exit-with-session startxfce4"
     }
   ],

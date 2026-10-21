@@ -93,8 +93,7 @@ class ProotEngine(private val context: Context) : GuestEngine {
     private fun firstEntry(f: File, flag: String): String? = runCatching {
         val raw = f.inputStream().buffered()
         val input = if (flag == "z") java.util.zip.GZIPInputStream(raw) else raw
-        input.use { val h = ByteArray(100); var n = 0; while (n < 100) { val r = it.read(h, n, 100 - n); if (r < 0) break; n += r }
-            String(h, 0, h.indexOf(0).let { z -> if (z < 0) n else z }, Charsets.UTF_8) }
+        input.use { firstTarEntry(it) }
     }.getOrNull()
 
     /** toybox tar flag from the file's magic bytes (downloads are stored without extension). */
@@ -223,6 +222,22 @@ class ProotEngine(private val context: Context) : GuestEngine {
 
 private val ROOT_DIRS = setOf("bin", "boot", "dev", "etc", "home", "lib", "lib64", "media", "mnt", "opt", "proc",
     "root", "run", "sbin", "srv", "sys", "tmp", "usr", "var")
+
+/** Name of the first real entry, skipping pax / GNU long-name headers ("./PaxHeaders/x", type x g L K). */
+internal fun firstTarEntry(input: java.io.InputStream): String? {
+    val h = ByteArray(512)
+    repeat(8) {
+        var n = 0
+        while (n < 512) { val r = input.read(h, n, 512 - n); if (r < 0) return null; n += r }
+        val name = String(h, 0, (0 until 100).firstOrNull { h[it] == 0.toByte() } ?: 100, Charsets.UTF_8)
+        val type = h[156].toInt().toChar()
+        if (type !in "xgLK") return name
+        val size = String(h, 124, 12, Charsets.US_ASCII).trim { it <= ' ' || it == ' ' }.toLongOrNull(8) ?: 0
+        var skip = (size + 511) / 512 * 512
+        while (skip > 0) { val k = input.skip(skip); if (k <= 0) return null; skip -= k }
+    }
+    return null
+}
 
 /** First tar entry "debian-trixie-aarch64/bin" -> wrapped in a folder; "./bin", "bin/", "etc/x" -> not. */
 internal fun wrappedInFolder(first: String?): Boolean {
