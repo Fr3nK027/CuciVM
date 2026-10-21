@@ -214,7 +214,8 @@ private fun ImageItem(img: GuestImage, progress: Float?, selected: Boolean, onSe
                 Text(img.name, style = MaterialTheme.typography.titleMedium)
                 Text(stringResource(kindLabel(img)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 // App spaces download nothing: no size line.
-                if (img.sizeBytes > 0) Text(stringResource(R.string.image_version, img.versionLabel, "%.0f MB".format(img.sizeBytes / 1e6)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (img.sizeBytes > 0) Text(stringResource(R.string.image_version, img.versionLabel, "%.0f MB".format(img.sizeBytes / 1e6)) +
+                    if (img.setup.isNullOrBlank()) "" else stringResource(R.string.image_setup_more), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (progress != null) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
             }
             Spacer(Modifier.width(8.dp))
