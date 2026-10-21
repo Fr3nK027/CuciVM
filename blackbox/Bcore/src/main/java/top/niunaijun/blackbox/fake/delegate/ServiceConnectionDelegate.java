@@ -63,8 +63,15 @@ public class ServiceConnectionDelegate extends IServiceConnection.Stub {
             java.lang.reflect.Method m = mConn.getClass().getMethod("connected",
                     ComponentName.class, IBinder.class, android.app.IBinderSession.class, boolean.class);
             m.invoke(mConn, mComponentName, service, session, dead);
-        } catch (ReflectiveOperationException e) {
+        } catch (NoSuchMethodException e) {
             connected(name, service, dead);
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            Throwable c = e.getCause();
+            if (c instanceof RemoteException) throw (RemoteException) c;
+            if (c instanceof RuntimeException) throw (RuntimeException) c;
+            throw new RuntimeException(c);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
     }
 

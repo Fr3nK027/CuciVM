@@ -92,6 +92,8 @@ import kotlin.math.min
 
 private const val SENTINEL = "  "
 
+private var fullScreens = 0
+
 @Composable
 fun DisplayScreen(id: String, onToPhone: () -> Unit, onSettings: () -> Unit, onSwitch: (String) -> Unit) {
     val vm by CuciVm.vms.vm(id).collectAsStateWithLifecycle(null)
@@ -99,13 +101,15 @@ fun DisplayScreen(id: String, onToPhone: () -> Unit, onSettings: () -> Unit, onS
     val ctx = LocalContext.current
     BackHandler(onBack = onToPhone)
 
-    // Full screen while the guest is shown.
+    // Full screen while the guest is shown. Counted: when switching VMs the new screen starts before
+    // the old one is disposed, and the old one must not bring the bars back.
     DisposableEffect(Unit) {
         val window = (ctx as Activity).window
         val ctl = WindowCompat.getInsetsController(window, window.decorView)
         ctl.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        fullScreens++
         ctl.hide(WindowInsetsCompat.Type.systemBars())
-        onDispose { ctl.show(WindowInsetsCompat.Type.systemBars()) }
+        onDispose { if (--fullScreens == 0) ctl.show(WindowInsetsCompat.Type.systemBars()) }
     }
 
     val v = vm ?: return

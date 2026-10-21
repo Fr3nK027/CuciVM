@@ -217,6 +217,7 @@
     <string name="google_services">Servizi Google</string>
     <string name="google_services_summary">Servono a YouTube, Gmail e alle altre app Google. Usa quelli del telefono.</string>
     <string name="google_services_busy">In corso…</string>
+    <string name="google_services_failed">Modifica non riuscita: %1$s</string>
     <string name="import_apps">Aggiungi app</string>
     <string name="import_one">Aggiungi</string>
     <string name="imported">Aggiunta</string>

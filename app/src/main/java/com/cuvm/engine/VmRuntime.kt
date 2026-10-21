@@ -46,7 +46,10 @@ class VmRuntime(
     fun state(id: String) = states.map { it[id] ?: VmState.Stopped }
     fun current(id: String) = states.value[id] ?: VmState.Stopped
 
-    private fun set(id: String, s: VmState) = _states.update { it + (id to s) }
+    private fun set(id: String, s: VmState) {
+        android.util.Log.i("CuciVmState", "$id $s")
+        _states.update { it + (id to s) }
+    }
 
     @Synchronized
     private fun allocDisplay(id: String): Int {

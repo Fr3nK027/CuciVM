@@ -72,15 +72,27 @@ fun VmSettingsScreen(id: String, onBack: () -> Unit, onOpen: (String) -> Unit, o
             if (engineType == "app_space" && CuciVm.space.gmsSupported()) {
                 var gms by remember { mutableStateOf<Boolean?>(null) }
                 var gmsBusy by remember { mutableStateOf(false) }
+                var gmsError by remember { mutableStateOf<String?>(null) }
                 LaunchedEffect(v.id) { gms = withContext(Dispatchers.IO) { CuciVm.space.gmsInstalled(CuciVm.vms.spaceUser(v)) } }
                 SwitchRow(stringResource(R.string.google_services), gms == true,
-                    if (gmsBusy) stringResource(R.string.google_services_busy) else stringResource(R.string.google_services_summary)) { on ->
+                    when {
+                        gmsBusy -> stringResource(R.string.google_services_busy)
+                        gmsError != null -> stringResource(R.string.google_services_failed, gmsError!!)
+                        else -> stringResource(R.string.google_services_summary)
+                    }) { on ->
                     if (gmsBusy) return@SwitchRow
                     gmsBusy = true
+                    gmsError = null
                     scope.launch {
-                        withContext(Dispatchers.IO) { CuciVm.space.setGms(CuciVm.vms.spaceUser(v), on) }
-                        gms = withContext(Dispatchers.IO) { CuciVm.space.gmsInstalled(CuciVm.vms.spaceUser(v)) }
-                        gmsBusy = false
+                        try {
+                            withContext(Dispatchers.IO) {
+                                val user = CuciVm.vms.spaceUser(v)
+                                runCatching { CuciVm.space.setGms(user, on).getOrThrow() }.onFailure { gmsError = it.message ?: it.javaClass.simpleName }
+                                gms = CuciVm.space.gmsInstalled(user)
+                            }
+                        } finally {
+                            gmsBusy = false
+                        }
                     }
                 }
             }

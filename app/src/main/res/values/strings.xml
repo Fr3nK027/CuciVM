@@ -218,6 +218,7 @@
     <string name="google_services">Google services</string>
     <string name="google_services_summary">Needed by YouTube, Gmail and other Google apps. Uses the ones on your phone.</string>
     <string name="google_services_busy">Working…</string>
+    <string name="google_services_failed">Could not change it: %1$s</string>
     <string name="import_apps">Add apps</string>
     <string name="import_one">Add</string>
     <string name="imported">Added</string>

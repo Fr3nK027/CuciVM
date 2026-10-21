@@ -48,6 +48,24 @@ public class PackageParserCompat {
         return splits != null && splits.length > 0 ? dir : apk;
     }
 
+    /** Parses base + splits when present; falls back to base.apk alone if a split cannot be read. */
+    public static Package parseWithCertificates(File apk) throws Throwable {
+        File cluster = clusterOf(apk);
+        if (cluster != apk) {
+            try {
+                PackageParser parser = createParser(cluster);
+                Package p = parsePackage(parser, cluster, 0);
+                collectCertificates(parser, p, 0);
+                return p;
+            } catch (Throwable ignored) {
+            }
+        }
+        PackageParser parser = createParser(apk);
+        Package p = parsePackage(parser, apk, 0);
+        collectCertificates(parser, p, 0);
+        return p;
+    }
+
     public static Package parsePackage(PackageParser parser, File packageFile, int flags) throws Throwable {
         if (API_LEVEL >= M) {
             return BRPackageParserMarshmallow.getWithException(parser).parsePackage(packageFile, flags);

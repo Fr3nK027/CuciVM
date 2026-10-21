@@ -249,10 +249,7 @@ import top.niunaijun.blackbox.utils.compat.PackageParserCompat;
 
     private PackageParser.Package parserApk(String file) {
         try {
-            PackageParser parser = PackageParserCompat.createParser(new File(file));
-            PackageParser.Package aPackage = PackageParserCompat.parsePackage(parser, PackageParserCompat.clusterOf(new File(file)), 0);
-            PackageParserCompat.collectCertificates(parser, aPackage, 0);
-            return aPackage;
+            return PackageParserCompat.parseWithCertificates(new File(file));
         } catch (Throwable t) {
             t.printStackTrace();
         }
