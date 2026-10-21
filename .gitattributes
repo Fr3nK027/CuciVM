@@ -1,0 +1,8 @@
+* text=auto
+*.png binary
+*.jpg binary
+*.so binary
+*.jar binary
+*.xz binary
+*.gz binary
+*.tar binary
