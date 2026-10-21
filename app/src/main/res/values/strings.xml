@@ -210,7 +210,7 @@
     <string name="battery_opt_off">Off for this app. Nothing to do.</string>
     <string name="battery_opt_on">On. Tap to let VMs run in the background.</string>
     <string name="adb_alternative">Or, from a computer</string>
-    <string name="info_about">Runs Linux systems inside an app, each one separate, with no root. Made for personal use.</string>
+    <string name="info_about">Android spaces, Linux desktops and Windows programs inside one app, each kept apart, no root. Made for personal use.</string>
     <string name="licences">Open-source parts</string>
     <string name="licence_in_guest">%1$s · installed inside the guest</string>
     <string name="licence_alpine">Downloaded from alpinelinux.org, several licences</string>

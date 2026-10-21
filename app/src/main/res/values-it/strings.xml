@@ -209,7 +209,7 @@
     <string name="battery_opt_off">Disattivata per questa app. Niente da fare.</string>
     <string name="battery_opt_on">Attiva. Tocca per lasciare le VM accese in background.</string>
     <string name="adb_alternative">Oppure, da un computer</string>
-    <string name="info_about">Esegue sistemi Linux dentro un\'app, ognuno separato, senza root. Fatta per uso personale.</string>
+    <string name="info_about">Spazi Android, desktop Linux e programmi Windows dentro un\'app, ognuno separato, senza root. Fatta per uso personale.</string>
     <string name="licences">Componenti open source</string>
     <string name="licence_in_guest">%1$s · installato nel sistema ospite</string>
     <string name="licence_alpine">Scaricato da alpinelinux.org, varie licenze</string>
