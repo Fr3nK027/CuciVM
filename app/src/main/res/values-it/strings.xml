@@ -126,6 +126,7 @@
     <string name="reset">Ripristina</string>
     <string name="repair_vm">Ripara</string>
     <string name="repair_vm_summary">Rifà la configurazione, tiene i tuoi file</string>
+    <string name="repair_vm_update">È disponibile un aggiornamento di questo sistema: tocca per applicarlo al prossimo avvio</string>
     <string name="repair_vm_confirm">La configurazione riparte al prossimo avvio. I tuoi file restano.</string>
     <string name="repair">Ripara</string>
     <string name="delete_vm">Elimina la VM</string>

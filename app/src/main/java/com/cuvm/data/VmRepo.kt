@@ -67,6 +67,14 @@ class VmRepo(private val context: Context, private val dao: VmDao, private val s
     }
 
     /** Re-runs first-boot setup on next start, keeps user files. */
+    /** True when the catalogue now sets this system up differently from when it was set up (unknown for old VMs). */
+    suspend fun setupOutdated(vm: Vm): Boolean = withContext(Dispatchers.IO) {
+        val image = image(vm.imageId) ?: return@withContext false
+        val stamp = runCatching { File(vm.dataPath, "rootfs/.vmbox-setup").readText().trim() }.getOrDefault("")
+        val setup = Catalogue.profile(image).setup
+        stamp.isNotEmpty() && setup.isNotEmpty() && stamp != com.cuvm.engine.setupStamp(setup)
+    }
+
     suspend fun repair(vm: Vm) = withContext(Dispatchers.IO) {
         File(vm.dataPath, "rootfs/.vmbox-setup").delete()
     }

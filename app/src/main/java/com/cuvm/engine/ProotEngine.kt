@@ -160,7 +160,8 @@ class ProotEngine(private val context: Context) : GuestEngine {
             running.remove(vm.id)
             coroutineContext.ensureActive() // stopped meanwhile
             if (code != 0) throw IOException("setup failed (network?)")
-            File(root, ".vmbox-setup").createNewFile()
+            // The stamp tells a later catalogue change apart (settings then offer "Repair").
+            File(root, ".vmbox-setup").writeText(setupStamp(setup))
         }
     }
 
@@ -232,3 +233,6 @@ internal fun wrappedInFolder(first: String?): Boolean {
 
 /** Guest audio PCM port = AUDIO_BASE + X display number (display port is 5900 + display). */
 const val AUDIO_BASE = 4700
+
+/** Short fingerprint of a first-boot setup script. */
+fun setupStamp(setup: String) = setup.hashCode().toUInt().toString(16)

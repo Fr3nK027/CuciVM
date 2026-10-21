@@ -127,6 +127,7 @@
     <string name="reset">Reset</string>
     <string name="repair_vm">Repair</string>
     <string name="repair_vm_summary">Runs setup again, keeps your files</string>
+    <string name="repair_vm_update">An update for this system is available: tap to apply it at the next start</string>
     <string name="repair_vm_confirm">Setup runs again at the next start. Your files stay.</string>
     <string name="repair">Repair</string>
     <string name="delete_vm">Delete VM</string>

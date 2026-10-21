@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -149,7 +150,8 @@ fun VmSettingsScreen(id: String, onBack: () -> Unit, onOpen: (String) -> Unit, o
             CategoryHeader(stringResource(R.string.cat_manage))
             PrefRow(stringResource(R.string.rename), v.name) { dlg = Dlg.RENAME }
             PrefRow(stringResource(R.string.reset_vm), stringResource(R.string.reset_vm_summary), enabled = !running) { dlg = Dlg.RESET }
-            PrefRow(stringResource(R.string.repair_vm), stringResource(R.string.repair_vm_summary), enabled = !running) { dlg = Dlg.REPAIR }
+            val outdated by produceState(false, v.id) { value = CuciVm.vms.setupOutdated(v) }
+            PrefRow(stringResource(R.string.repair_vm), stringResource(if (outdated) R.string.repair_vm_update else R.string.repair_vm_summary), enabled = !running) { dlg = Dlg.REPAIR }
             PrefRow(stringResource(R.string.delete_vm), if (running) stringResource(R.string.stop_first) else null, enabled = !running) { dlg = Dlg.DELETE }
         }
     }
