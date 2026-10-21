@@ -114,6 +114,20 @@
       "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Logo-ubuntu_cof-orange-hex.svg/250px-Logo-ubuntu_cof-orange-hex.svg.png",
       "setup": "export DEBIAN_FRONTEND=noninteractive && apt-get -o APT::Sandbox::User=root update && apt-get -o APT::Sandbox::User=root install -y --no-install-recommends pulseaudio tigervnc-standalone-server xfce4 xfce4-terminal dbus-x11 fonts-dejavu-core tzdata && mkdir -p /root/.config/xfce4/xfconf/xfce-perchannel-xml && printf '%s\n' '<?xml version=\"1.0\" encoding=\"UTF-8\"?>' '<channel name=\"xfce4-desktop\" version=\"1.0\"><property name=\"desktop-icons\" type=\"empty\"><property name=\"single-click\" type=\"bool\" value=\"true\"/></property></channel>' > /root/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml",
       "session": "exec dbus-launch --exit-with-session startxfce4"
+    },
+    {
+      "id": "fedora-42-xfce",
+      "os": "linux",
+      "name": "Fedora 42 · XFCE",
+      "version": "42",
+      "arch": "arm64",
+      "engine": "proot",
+      "url": "https://github.com/termux/proot-distro/releases/download/v4.29.0/fedora-aarch64-pd-v4.29.0.tar.xz",
+      "sha256": "0f683e7c3b250660b490479f0c1c57e7450082f6ddc81375ddc863e611a76c65",
+      "size": 33788404,
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Fedora_icon_%282021%29.svg/250px-Fedora_icon_%282021%29.svg.png",
+      "setup": "dnf -y --setopt=install_weak_deps=False install xfwm4 xfce4-session xfce4-panel xfdesktop xfce4-terminal Thunar xfce4-settings tigervnc-server-minimal pulseaudio dbus-x11 dejavu-sans-fonts adwaita-icon-theme && mkdir -p /root/.config/xfce4/xfconf/xfce-perchannel-xml && printf '%s\n' '<?xml version=\"1.0\" encoding=\"UTF-8\"?>' '<channel name=\"xfce4-desktop\" version=\"1.0\"><property name=\"desktop-icons\" type=\"empty\"><property name=\"single-click\" type=\"bool\" value=\"true\"/></property></channel>' > /root/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml",
+      "session": "exec dbus-launch --exit-with-session startxfce4"
     }
   ],
   "logos": {
