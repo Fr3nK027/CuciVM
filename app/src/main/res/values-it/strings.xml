@@ -104,6 +104,7 @@
     <string name="hardware">Info dispositivo</string>
     <string name="hardware_summary">Modello, marca, numero di serie</string>
     <string name="cat_sharing">Condivisione</string>
+    <string name="cat_privacy">Privacy</string>
     <string name="share_clipboard">Condividi appunti</string>
     <string name="share_folder">Condividi la cartella Download</string>
     <string name="share_folder_on">Visibile come /mnt/shared</string>

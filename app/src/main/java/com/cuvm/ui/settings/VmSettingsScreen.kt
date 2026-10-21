@@ -99,37 +99,41 @@ fun VmSettingsScreen(id: String, onBack: () -> Unit, onOpen: (String) -> Unit, o
                 }
             }
 
-            CategoryHeader(stringResource(R.string.cat_display))
-            PrefRow(stringResource(R.string.resolution), restartNote ?: "${v.width} × ${v.height} · DPI ${v.dpi}") { onOpen("resolution") }
-            PrefRow(stringResource(R.string.refresh_rate), "${v.refreshRate} FPS") { dlg = Dlg.REFRESH }
-            PrefRow(stringResource(R.string.cutout), stringResource(if (v.cutoutMode == "overlap") R.string.cutout_overlap else R.string.cutout_exclude)) { dlg = Dlg.CUTOUT }
+            // Only what applies to this kind of VM: a space's apps use the phone's own screen, sensors,
+            // network and clipboard; a desktop reads the phone's hardware directly.
+            val space = engineType == "app_space"
+            if (!space) {
+                CategoryHeader(stringResource(R.string.cat_display))
+                PrefRow(stringResource(R.string.resolution), restartNote ?: "${v.width} × ${v.height} · DPI ${v.dpi}") { onOpen("resolution") }
+                PrefRow(stringResource(R.string.refresh_rate), "${v.refreshRate} FPS") { dlg = Dlg.REFRESH }
+                PrefRow(stringResource(R.string.cutout), stringResource(if (v.cutoutMode == "overlap") R.string.cutout_overlap else R.string.cutout_exclude)) { dlg = Dlg.CUTOUT }
 
-            CategoryHeader(stringResource(R.string.cat_navigation))
-            PrefRow(stringResource(R.string.nav_bar), navLabel(v.navBar)) { dlg = Dlg.NAV }
-            PrefRow(stringResource(R.string.floating_window), stringResource(R.string.floating_window_summary)) { onOpen("advanced") }
+                CategoryHeader(stringResource(R.string.cat_navigation))
+                PrefRow(stringResource(R.string.nav_bar), navLabel(v.navBar)) { dlg = Dlg.NAV }
+                PrefRow(stringResource(R.string.floating_window), stringResource(R.string.floating_window_summary)) { onOpen("advanced") }
 
-            CategoryHeader(stringResource(R.string.cat_virtual))
-            Text(stringResource(R.string.android_only_note), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp))
-            PrefRow(stringResource(R.string.sensors), stringResource(R.string.sensors_summary)) { onOpen("sensors") }
-            // No camera or notification switches: apps in Android spaces use the camera and post
-            // notifications like any phone app; desktops have neither.
-            PrefRow(stringResource(R.string.location), stringResource(R.string.location_summary)) { onOpen("location") }
-            PrefRow(stringResource(R.string.network), stringResource(R.string.network_summary)) { onOpen("network") }
-            PrefRow(stringResource(R.string.phone), stringResource(R.string.phone_summary)) { onOpen("phone") }
-            PrefRow(stringResource(R.string.hardware), stringResource(R.string.hardware_summary)) { onOpen("hardware") }
-
-            CategoryHeader(stringResource(R.string.cat_sharing))
-            SwitchRow(stringResource(R.string.share_clipboard), v.shareClipboard) { c -> save { it.copy(shareClipboard = c) } }
-            SwitchRow(stringResource(R.string.share_folder), v.shareFolder, stringResource(if (v.shareFolder) R.string.share_folder_on else R.string.off)) { c ->
-                if (c) storage.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE))
-                else save { it.copy(shareFolder = false) }
+                CategoryHeader(stringResource(R.string.cat_sharing))
+                SwitchRow(stringResource(R.string.share_clipboard), v.shareClipboard) { c -> save { it.copy(shareClipboard = c) } }
+                SwitchRow(stringResource(R.string.share_folder), v.shareFolder, stringResource(if (v.shareFolder) R.string.share_folder_on else R.string.off)) { c ->
+                    if (c) storage.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE))
+                    else save { it.copy(shareFolder = false) }
+                }
+            } else {
+                // Applied to the space's apps (location on launch, IMEI, model and Android ID).
+                CategoryHeader(stringResource(R.string.cat_virtual))
+                PrefRow(stringResource(R.string.location), stringResource(R.string.location_summary)) { onOpen("location") }
+                PrefRow(stringResource(R.string.phone), stringResource(R.string.phone_summary)) { onOpen("phone") }
+                PrefRow(stringResource(R.string.hardware), stringResource(R.string.hardware_summary)) { onOpen("hardware") }
             }
+
+            CategoryHeader(stringResource(R.string.cat_privacy))
             val lockCtx = androidx.compose.ui.platform.LocalContext.current
             val lockable = remember { com.cuvm.ui.display.VmLock.available(lockCtx) }
             SwitchRow(stringResource(R.string.lock_vm), v.locked,
                 stringResource(if (lockable || v.locked) R.string.lock_vm_summary else R.string.lock_vm_unavailable)) { c ->
                 if (!c || lockable) save { it.copy(locked = c) }
             }
+
 
             if (engineType != "app_space") {
                 CategoryHeader(stringResource(R.string.backup_restore))
