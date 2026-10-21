@@ -122,6 +122,12 @@ fun VmSettingsScreen(id: String, onBack: () -> Unit, onOpen: (String) -> Unit, o
                 else save { it.copy(shareFolder = false) }
             }
             SwitchRow(stringResource(R.string.host_notifications), v.hostNotifications) { c -> save { it.copy(hostNotifications = c) } }
+            val lockCtx = androidx.compose.ui.platform.LocalContext.current
+            val lockable = remember { com.cuvm.ui.display.VmLock.available(lockCtx) }
+            SwitchRow(stringResource(R.string.lock_vm), v.locked,
+                stringResource(if (lockable || v.locked) R.string.lock_vm_summary else R.string.lock_vm_unavailable)) { c ->
+                if (!c || lockable) save { it.copy(locked = c) }
+            }
 
             if (engineType != "app_space") {
                 CategoryHeader(stringResource(R.string.backup_restore))

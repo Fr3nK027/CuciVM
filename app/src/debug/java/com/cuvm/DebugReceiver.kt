@@ -41,6 +41,7 @@ class DebugReceiver : BroadcastReceiver() {
                     }
                     // --ez on true|false
                     "RES" -> vm?.let { CuciVm.vms.update(it.copy(width = intent.getIntExtra("w", it.width), height = intent.getIntExtra("h", it.height), dpi = intent.getIntExtra("dpi", it.dpi))); log("res ${it.name}") }
+                    "LOCK" -> vm?.let { CuciVm.vms.update(it.copy(locked = intent.getBooleanExtra("on", true))); log("locked ${it.name}") }
                     "SHARE" -> vm?.let { CuciVm.vms.update(it.copy(shareFolder = intent.getBooleanExtra("on", true))); log("shareFolder ${it.name}") }
                     "SMALLWINDOW" -> vm?.let { CuciVm.vms.update(it.copy(smallWindow = intent.getBooleanExtra("on", true))); log("smallWindow ${it.name}") }
                     // App spaces: --es name <vm> --es pkg <package>

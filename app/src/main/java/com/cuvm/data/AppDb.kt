@@ -109,7 +109,7 @@ interface VmDao {
 
 @Database(
     entities = [GuestImage::class, Vm::class, VmIdentity::class, VmNetwork::class, VmSensor::class, VmLocation::class],
-    version = 3,
+    version = 4,
 )
 abstract class AppDb : RoomDatabase() {
     abstract fun dao(): VmDao
@@ -129,7 +129,13 @@ abstract class AppDb : RoomDatabase() {
             }
         }
 
+        private val V3_V4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("alter table vm add column locked integer not null default 0")
+            }
+        }
+
         fun build(context: Context) = Room.databaseBuilder(context, AppDb::class.java, "cucivm.db")
-            .addMigrations(V1_V2, V2_V3).build()
+            .addMigrations(V1_V2, V2_V3, V3_V4).build()
     }
 }

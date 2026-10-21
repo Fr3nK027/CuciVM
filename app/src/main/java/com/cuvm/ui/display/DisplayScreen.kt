@@ -113,6 +113,8 @@ fun DisplayScreen(id: String, onToPhone: () -> Unit, onSettings: () -> Unit, onS
     }
 
     val v = vm ?: return
+    // Without a screen lock on the phone there is nothing to ask for: never lock the user out.
+    if (v.locked && v.id !in VmLock.unlocked && VmLock.available(ctx)) return LockGate(v.id, v.name, onToPhone)
     val engineType by produceState<String?>(null, v.imageId) { value = CuciVm.vms.image(v.imageId)?.engine }
     if (engineType == AppSpace.ENGINE) return AppSpaceScreen(v, onToPhone, onSettings)
     DisposableEffect(v.smallWindow, v.width, v.height) {
@@ -139,7 +141,7 @@ fun DisplayScreen(id: String, onToPhone: () -> Unit, onSettings: () -> Unit, onS
         } else {
             Column(Modifier.align(Alignment.Center).padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(v.name, style = MaterialTheme.typography.titleLarge, color = Color.White)
-                Text(stateText(s), color = if (s is VmState.Error) MaterialTheme.colorScheme.error else Color.White.copy(alpha = 0.8f))
+                Text(stateText(s), textAlign = androidx.compose.ui.text.style.TextAlign.Center, color = if (s is VmState.Error) MaterialTheme.colorScheme.error else Color.White.copy(alpha = 0.8f))
                 when (s) {
                     VmState.Stopped, is VmState.Error -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilledTonalButton(onClick = { CuciVm.runtime.start(id) }) { Text(stringResource(if (s is VmState.Error) R.string.retry else R.string.start)) }

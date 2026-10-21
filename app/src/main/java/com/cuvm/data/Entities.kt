@@ -1,5 +1,6 @@
 package com.cuvm.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -62,6 +63,7 @@ data class Vm(
     val dataPath: String,
     val lastError: String? = null,
     val spaceUser: Int? = null,  // app_space: virtual user id in the engine
+    @ColumnInfo(defaultValue = "0") val locked: Boolean = false,  // ask for the phone's fingerprint/PIN on open
     val createdAt: Long,
     val updatedAt: Long,
 )

@@ -109,6 +109,11 @@
     <string name="share_folder_on">Visible as /mnt/shared</string>
     <string name="phone_downloads">Phone Downloads</string>
     <string name="host_notifications">Show its notifications on the phone</string>
+    <string name="lock_vm">Lock this VM</string>
+    <string name="lock_vm_summary">Asks for the phone fingerprint, face or PIN when you open it</string>
+    <string name="lock_vm_unavailable">Set a screen lock on the phone first</string>
+    <string name="unlock">Unlock</string>
+    <string name="unlock_vm">Unlock %1$s</string>
     <string name="cat_power">Power</string>
     <string name="shutdown_vm">Shut down VM</string>
     <string name="start_vm">Start VM</string>
