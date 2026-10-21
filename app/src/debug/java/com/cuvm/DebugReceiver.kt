@@ -42,6 +42,10 @@ class DebugReceiver : BroadcastReceiver() {
                     // --ez on true|false
                     "SMALLWINDOW" -> vm?.let { CuciVm.vms.update(it.copy(smallWindow = intent.getBooleanExtra("on", true))); log("smallWindow ${it.name}") }
                     // App spaces: --es name <vm> --es pkg <package>
+                    "GMS" -> vm?.let {
+                        val u = CuciVm.vms.spaceUser(it)
+                        log("gms supported=${CuciVm.space.gmsSupported()} set=${CuciVm.space.setGms(u, intent.getBooleanExtra("on", true))} now=${CuciVm.space.gmsInstalled(u)}")
+                    }
                     "IMPORT", "LAUNCH", "APPS" -> {
                         val v = vm ?: return@launch log("no VM")
                         val user = CuciVm.vms.spaceUser(v)

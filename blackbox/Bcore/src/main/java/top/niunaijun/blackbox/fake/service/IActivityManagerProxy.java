@@ -145,13 +145,19 @@ public class IActivityManagerProxy extends ClassInvocationStub {
                     args[1] = BlackBoxCore.getHostPkg();
                 }
 
+                boolean google = ((String) auth).contains("com.google.android.gms")
+                        || ((String) auth).contains("com.android.vending")
+                        || ((String) auth).contains("com.google.android.gsf");
+                // CuciVM: with Google services in the space, use their providers there; the phone's own
+                // Google services reject us (not Google-signed) and apps then see no accounts.
+                if (google && BlackBoxCore.getBPackageManager().resolveContentProvider(
+                        (String) auth, GET_META_DATA, BActivityThread.getUserId()) != null) {
+                    google = false;
+                }
                 if (auth.equals("settings")
                         || auth.equals("media")
                         || auth.equals("telephony")
-                        || ((String) auth).contains("com.google.android.gms")
-                        || ((String) auth).contains("com.android.vending")
-                        || ((String) auth).contains("com.google.android.gsf")
-                        || auth.equals("com.google.android.gms.chimera")
+                        || google
                         || auth.equals("com.huawei.android.launcher.settings")
                         || auth.equals("com.hihonor.android.launcher.settings")) {
                     content = method.invoke(who, args);
@@ -589,6 +595,10 @@ public class IActivityManagerProxy extends ClassInvocationStub {
                     args[i] = null;
                 }
             }
+            // CuciVM: userId is the last argument; USER_ALL/other users need INTERACT_ACROSS_USERS, which we lack.
+            if (args[args.length - 1] instanceof Integer) {
+                args[args.length - 1] = android.os.Process.myUid() / 100000;
+            }
             return method.invoke(who, args);
         }
 
@@ -773,13 +783,24 @@ public class IActivityManagerProxy extends ClassInvocationStub {
         }
     }
 
+    // CuciVM: Android 15+ checks through checkPermissionForDevice(perm, pid, uid, deviceId).
+    @ProxyMethod("checkPermissionForDevice")
+    public static class CheckPermissionForDevice extends checkPermission {
+    }
+
     @ProxyMethod("checkPermission")
     public static class checkPermission extends MethodHook {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             MethodParameterUtils.replaceLastUid(args);
+            if (args.length > 2 && args[2] instanceof Integer && (int) args[2] == BlackBoxCore.getBUid()) {
+                args[2] = BlackBoxCore.getHostUid();
+            }
             String permission = (String) args[0];
+            // The host holds these; WebView blocks every network load (net::ERR_CACHE_MISS) when INTERNET is denied.
             if (permission.equals(Manifest.permission.ACCOUNT_MANAGER)
+                    || permission.equals(Manifest.permission.INTERNET)
+                    || permission.equals(Manifest.permission.ACCESS_NETWORK_STATE)
                     || permission.equals(Manifest.permission.SEND_SMS)) {
                 return PackageManager.PERMISSION_GRANTED;
             }

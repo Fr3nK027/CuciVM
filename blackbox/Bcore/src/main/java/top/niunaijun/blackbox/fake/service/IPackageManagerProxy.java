@@ -134,11 +134,12 @@ public class IPackageManagerProxy extends BinderInvocationStub {
             int flags = MethodParameterUtils.toInt(args[1]);
             
             
-            if ("com.android.vending".equals(packageName)) {
+            PackageInfo packageInfo = BlackBoxCore.getBPackageManager().getPackageInfo(packageName, flags, BlackBoxCore.getUserId());
+            // CuciVM: the stand-in has no signature, so Google apps reject it (error 9) once Google services
+            // are in the space; use it only when the space has no real Play Store.
+            if (packageInfo == null && "com.android.vending".equals(packageName)) {
                 return createFakeGooglePlayServicesPackageInfo();
             }
-            
-            PackageInfo packageInfo = BlackBoxCore.getBPackageManager().getPackageInfo(packageName, flags, BlackBoxCore.getUserId());
             if (packageInfo != null) {
                 
                 if (packageInfo.requestedPermissions != null && packageInfo.requestedPermissionsFlags != null) {

@@ -53,6 +53,21 @@ public class ServiceConnectionDelegate extends IServiceConnection.Stub {
         connected(name, service, false);
     }
 
+    /**
+     * CuciVM: Android 16 calls connected(name, service, IBinderSession, dead). Without this overload the
+     * framework hits an AbstractMethodError and kills the app (YouTube). Forward to the app's own
+     * connection with the same 4-argument method, by reflection (it is not in the compile SDK).
+     */
+    public void connected(ComponentName name, IBinder service, android.app.IBinderSession session, boolean dead) throws RemoteException {
+        try {
+            java.lang.reflect.Method m = mConn.getClass().getMethod("connected",
+                    ComponentName.class, IBinder.class, android.app.IBinderSession.class, boolean.class);
+            m.invoke(mConn, mComponentName, service, session, dead);
+        } catch (ReflectiveOperationException e) {
+            connected(name, service, dead);
+        }
+    }
+
     public void connected(ComponentName name, IBinder service, boolean dead) throws RemoteException {
         if (BuildCompat.isOreo()) {
             BRIServiceConnectionO.get(mConn).connected(mComponentName, service, dead);

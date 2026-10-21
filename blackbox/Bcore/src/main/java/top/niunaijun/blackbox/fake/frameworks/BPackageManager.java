@@ -109,7 +109,9 @@ public class BPackageManager extends BlackManager<IBPackageManagerService> {
                     userId);
         }
         if (ris == null || ris.size() <= 0) {
-            return null;
+            // CuciVM: launchers declared as <activity-alias> (Chrome...) are not indexed by the engine;
+            // ask the phone's copy of the same app and start the alias' real activity.
+            return hostLaunchIntent(packageName);
         }
         Intent intent = new Intent(intentToResolve);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -119,12 +121,20 @@ public class BPackageManager extends BlackManager<IBPackageManagerService> {
     }
     
     
+    private Intent hostLaunchIntent(String packageName) {
+        Intent main = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setPackage(packageName);
+        List<ResolveInfo> ris = BlackBoxCore.getContext().getPackageManager().queryIntentActivities(main, 0);
+        if (ris == null || ris.isEmpty()) return null;
+        ActivityInfo ai = ris.get(0).activityInfo;
+        main.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        main.setClassName(ai.packageName, ai.targetActivity != null ? ai.targetActivity : ai.name);
+        return main;
+    }
+
     private Intent createFallbackLaunchIntent(String packageName) {
         try {
-            
-            Intent intent = BlackBoxCore.getContext().getPackageManager().getLaunchIntentForPackage(packageName);
+            Intent intent = hostLaunchIntent(packageName);
             if (intent != null) {
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 return intent;
             }
         } catch (Exception e) {

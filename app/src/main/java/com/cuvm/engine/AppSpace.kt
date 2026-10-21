@@ -40,6 +40,13 @@ class AppSpace {
 
     fun deleteUser(user: Int) = core.deleteUser(user)
 
+    /** Google Play services from the phone, copied into this space (YouTube, Gmail... need them). */
+    fun gmsSupported() = core.isSupportGms
+    fun gmsInstalled(user: Int) = core.isInstallGms(user)
+    fun setGms(user: Int, on: Boolean): Result<Unit> =
+        if (on) result(core.installGms(user))
+        else if (core.uninstallGms(user)) Result.success(Unit) else Result.failure(IllegalStateException("uninstall failed"))
+
     /** Wipes the space: all its apps and their data. */
     fun reset(user: Int) {
         deleteUser(user)

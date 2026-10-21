@@ -99,7 +99,7 @@ public class ContentProviderStub extends ClassInvocationStub implements BContent
                 
                 
                 if (methodName.equals("call")) {
-                    Slog.w(TAG, "Error in call method, returning safe default: " + e.getMessage());
+                    Slog.w(TAG, "Error in call method, returning safe default: " + (cause != null ? cause : e));
                     return getSafeDefaultValue(methodName, method.getReturnType());
                 }
                 

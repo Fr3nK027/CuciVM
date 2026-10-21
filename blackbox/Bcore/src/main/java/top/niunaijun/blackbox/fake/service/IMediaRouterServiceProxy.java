@@ -33,6 +33,13 @@ public class IMediaRouterServiceProxy extends BinderInvocationStub {
         return false;
     }
 
+    // CuciVM: every MediaRouter call checks the caller package (getSystemRoutes crashed YouTube).
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        MethodParameterUtils.replaceFirstAppPkg(args);
+        return super.invoke(proxy, method, args);
+    }
+
     @ProxyMethod("registerClientAsUser")
     public static class registerClientAsUser extends MethodHook {
 

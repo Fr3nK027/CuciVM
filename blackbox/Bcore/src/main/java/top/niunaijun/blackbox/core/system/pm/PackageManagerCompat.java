@@ -329,6 +329,24 @@ public class PackageManagerCompat {
             }
         }
         fixJar(ai);
+        // CuciVM: apps copied from the phone keep their split APKs and shared libraries (Chrome needs its
+        // code split and the Trichrome library); the engine itself only parses base.apk.
+        if (p.installOption.isFlag(InstallOption.FLAG_SYSTEM)) {
+            try {
+                ApplicationInfo host = BlackBoxCore.getPackageManager().getApplicationInfo(p.packageName, PackageManager.GET_SHARED_LIBRARY_FILES);
+                if (sourceDir.equals(host.sourceDir) && host.splitSourceDirs != null) {
+                    ai.splitNames = host.splitNames;
+                    ai.splitSourceDirs = host.splitSourceDirs;
+                    ai.splitPublicSourceDirs = host.splitPublicSourceDirs;
+                }
+                if (host.sharedLibraryFiles != null) {
+                    Set<String> libs = new java.util.LinkedHashSet<>(java.util.Arrays.asList(host.sharedLibraryFiles));
+                    libs.addAll(java.util.Arrays.asList(ai.sharedLibraryFiles));
+                    ai.sharedLibraryFiles = libs.toArray(new String[0]);
+                }
+            } catch (PackageManager.NameNotFoundException ignored) {
+            }
+        }
         return ai;
     }
 

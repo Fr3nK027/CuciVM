@@ -165,6 +165,7 @@ public class HookManager {
         addInjector(new IXiaomiMiuiServicesProxy());
             addInjector(new IPhoneSubInfoProxy());
             addInjector(new IMediaRouterServiceProxy());
+            if (android.os.Build.VERSION.SDK_INT >= 33) addInjector(new top.niunaijun.blackbox.fake.service.ILocaleManagerProxy()); // CuciVM
             addInjector(new IPowerManagerProxy());
             addInjector(new IContextHubServiceProxy());
             

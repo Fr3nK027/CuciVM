@@ -61,7 +61,15 @@ public class NativeCore {
                 if (appPackageName != null && appPackageName.equals("com.google.android.webview")){
                     return Process.myUid();
                 }
-                
+
+                // CuciVM: an incoming AttributionSource (another space app calling our provider, e.g. Google
+                // services calling YouTube) carries the real uid; answering the virtual one makes the
+                // framework throw "Calling uid ... doesn't match source uid" and the caller gives up.
+                StackTraceElement[] frames = Thread.currentThread().getStackTrace();
+                for (int i = 0; i < Math.min(frames.length, 8); i++) {
+                    if ("android.content.AttributionSource".equals(frames[i].getClassName())) return origCallingUid;
+                }
+
                 
                 try {
                     int callingBUid = BlackBoxCore.getCallingBUid();

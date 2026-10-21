@@ -55,6 +55,21 @@ public class IPermissionManagerProxy extends BinderInvocationStub {
         }
     }
 
+    // CuciVM: Android 14+ asks this service directly (uid first, device id last), so the space app's own
+    // uid or package reaches the system, which answers "denied" (WebView then blocks all network loads).
+    @Override
+    public Object invoke(Object proxy, java.lang.reflect.Method method, Object[] args) throws Throwable {
+        String name = method.getName();
+        if (args != null && name.equals("checkUidPermission") && args.length > 0 && args[0] instanceof Integer
+                && (int) args[0] == BlackBoxCore.getBUid()) {
+            args[0] = BlackBoxCore.getHostUid();
+        } else if (args != null && name.equals("checkPermission")) {
+            top.niunaijun.blackbox.utils.MethodParameterUtils.replaceFirstAppPkg(args);
+            if (args[args.length - 1] instanceof Integer) args[args.length - 1] = BlackBoxCore.getHostUserId();
+        }
+        return super.invoke(proxy, method, args);
+    }
+
     @Override
     public boolean isBadEnv() {
         return false;

@@ -40,6 +40,6 @@ Debug builds include `DebugReceiver` (adb-driven VM control for automated tests)
 | PRoot (`app/src/main/assets/engine/proot.bin`, `loader.bin`), Termux build 5.1.107 | GPL-2.0 | https://github.com/termux/proot |
 | libtalloc 2.5.0 (`libtalloc.so.2.bin`) | LGPL-3.0 | https://talloc.samba.org |
 | libandroid-shmem 0.7 (`libandroid-shmem.so.bin`) | BSD-3-Clause | https://github.com/termux/libandroid-shmem |
-| `blackbox/` (Bcore, black-reflection, compiler): NewBlackbox at the commit in `blackbox/UPSTREAM`; changed: `LogSender` and `ClientConfiguration.getLogSenderChatId` (no log upload), Java 17 target | Apache-2.0 | https://github.com/ALEX5402/NewBlackbox |
+| `blackbox/` (Bcore, black-reflection, compiler): NewBlackbox at the commit in `blackbox/UPSTREAM`; changed: `LogSender` and `ClientConfiguration.getLogSenderChatId` (no log upload), Java 17 target, MediaRouter package fix, new `ILocaleManagerProxy` | Apache-2.0 | https://github.com/ALEX5402/NewBlackbox |
 
 The binaries are unmodified Termux packages (`packages.termux.dev`, aarch64).

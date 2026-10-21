@@ -34,6 +34,8 @@ import com.cuvm.ui.common.PrefRow
 import com.cuvm.ui.common.SwitchRow
 import com.cuvm.ui.common.TextDialog
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private enum class Dlg { REFRESH, CUTOUT, NAV, RENAME, RESET, REPAIR, DELETE }
 
@@ -67,6 +69,21 @@ fun VmSettingsScreen(id: String, onBack: () -> Unit, onOpen: (String) -> Unit, o
         Column(mod.fillMaxSize().verticalScroll(rememberScrollState())) {
             CategoryHeader(stringResource(R.string.cat_system))
             PrefRow(stringResource(R.string.guest_system), image)
+            if (engineType == "app_space" && CuciVm.space.gmsSupported()) {
+                var gms by remember { mutableStateOf<Boolean?>(null) }
+                var gmsBusy by remember { mutableStateOf(false) }
+                LaunchedEffect(v.id) { gms = withContext(Dispatchers.IO) { CuciVm.space.gmsInstalled(CuciVm.vms.spaceUser(v)) } }
+                SwitchRow(stringResource(R.string.google_services), gms == true,
+                    if (gmsBusy) stringResource(R.string.google_services_busy) else stringResource(R.string.google_services_summary)) { on ->
+                    if (gmsBusy) return@SwitchRow
+                    gmsBusy = true
+                    scope.launch {
+                        withContext(Dispatchers.IO) { CuciVm.space.setGms(CuciVm.vms.spaceUser(v), on) }
+                        gms = withContext(Dispatchers.IO) { CuciVm.space.gmsInstalled(CuciVm.vms.spaceUser(v)) }
+                        gmsBusy = false
+                    }
+                }
+            }
 
             CategoryHeader(stringResource(R.string.cat_display))
             PrefRow(stringResource(R.string.resolution), restartNote ?: "${v.width} × ${v.height} · DPI ${v.dpi}") { onOpen("resolution") }
