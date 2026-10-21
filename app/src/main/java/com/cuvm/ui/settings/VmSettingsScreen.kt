@@ -111,7 +111,8 @@ fun VmSettingsScreen(id: String, onBack: () -> Unit, onOpen: (String) -> Unit, o
             CategoryHeader(stringResource(R.string.cat_virtual))
             Text(stringResource(R.string.android_only_note), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp))
             PrefRow(stringResource(R.string.sensors), stringResource(R.string.sensors_summary)) { onOpen("sensors") }
-            SwitchRow(stringResource(R.string.camera), v.camera) { c -> save { it.copy(camera = c) } }
+            // No camera or notification switches: apps in Android spaces use the camera and post
+            // notifications like any phone app; desktops have neither.
             PrefRow(stringResource(R.string.location), stringResource(R.string.location_summary)) { onOpen("location") }
             PrefRow(stringResource(R.string.network), stringResource(R.string.network_summary)) { onOpen("network") }
             PrefRow(stringResource(R.string.phone), stringResource(R.string.phone_summary)) { onOpen("phone") }
@@ -123,7 +124,6 @@ fun VmSettingsScreen(id: String, onBack: () -> Unit, onOpen: (String) -> Unit, o
                 if (c) storage.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE))
                 else save { it.copy(shareFolder = false) }
             }
-            SwitchRow(stringResource(R.string.host_notifications), v.hostNotifications) { c -> save { it.copy(hostNotifications = c) } }
             val lockCtx = androidx.compose.ui.platform.LocalContext.current
             val lockable = remember { com.cuvm.ui.display.VmLock.available(lockCtx) }
             SwitchRow(stringResource(R.string.lock_vm), v.locked,
